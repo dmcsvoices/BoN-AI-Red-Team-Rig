@@ -1,20 +1,92 @@
 import { useState, useEffect } from 'react';
 import { getSessions, createSession, deleteSession } from '../api';
 
-export default function SessionManager() {
+export default function SessionManager({ showCreateForm = false, onCreateFormChange }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [availableModels, setAvailableModels] = useState([]);
+  const [modelsLoading, setModelsLoading] = useState(false);
+  const [evaluationModels, setEvaluationModels] = useState([]);
+  const [evaluationModelsLoading, setEvaluationModelsLoading] = useState(false);
   const [newSession, setNewSession] = useState({
     name: '',
-    target_model: 'gpt-4',
-    seed_prompt: ''
+    target_model: '',
+    seed_prompt: '',
+    prompt_generation_llm: '',
+    evaluation_llm: ''
   });
 
   useEffect(() => {
     loadSessions();
+    loadModels();
+    loadEvaluationModels();
+
+    // Listen for settings changes
+    const handleSettingsChange = () => {
+      loadModels();
+      loadEvaluationModels();
+    };
+
+    window.addEventListener('bonHitlSettingsChanged', handleSettingsChange);
+    return () => window.removeEventListener('bonHitlSettingsChanged', handleSettingsChange);
   }, []);
+
+  const loadModels = async () => {
+    try {
+      setModelsLoading(true);
+      const settings = JSON.parse(localStorage.getItem('bonHitlSettings') || '{}');
+      const promptGenerationUrl = settings.promptGenerationUrl || 'http://localhost:1234';
+      
+      const response = await fetch(`http://localhost:50000/api/models/prompt-generation?prompt_generation_url=${encodeURIComponent(promptGenerationUrl)}`);
+      if (response.ok) {
+        const data = await response.json();
+        const models = data.data.map(model => model.id);
+        setAvailableModels(models);
+        // Set default model if available
+        if (models.length > 0 && !newSession.prompt_generation_llm) {
+          setNewSession(prev => ({
+            ...prev,
+            prompt_generation_llm: models[0]
+          }));
+        }
+      } else {
+        console.warn('Failed to load models from prompt generation server');
+      }
+    } catch (err) {
+      console.warn('Could not connect to prompt generation server for models:', err.message);
+    } finally {
+      setModelsLoading(false);
+    }
+  };
+
+  const loadEvaluationModels = async () => {
+    try {
+      setEvaluationModelsLoading(true);
+      const settings = JSON.parse(localStorage.getItem('bonHitlSettings') || '{}');
+      const evaluationUrl = settings.evaluationUrl || 'http://172.27.0.93:11434';
+      
+      const response = await fetch(`http://localhost:50000/api/models/evaluation?evaluation_url=${encodeURIComponent(evaluationUrl)}`);
+      if (response.ok) {
+        const data = await response.json();
+        const models = data.data.map(model => model.id);
+        setEvaluationModels(models);
+        // Set default model if available
+        if (models.length > 0 && !newSession.evaluation_llm) {
+          setNewSession(prev => ({
+            ...prev,
+            evaluation_llm: models[0]
+          }));
+        }
+      } else {
+        console.warn('Failed to load evaluation models from evaluation server, status:', response.status);
+      }
+    } catch (err) {
+      console.warn('Could not connect to evaluation server for models:', err.message);
+    } finally {
+      setEvaluationModelsLoading(false);
+    }
+  };
 
   const loadSessions = async () => {
     try {
@@ -33,8 +105,14 @@ export default function SessionManager() {
     e.preventDefault();
     try {
       await createSession(newSession);
-      setNewSession({ name: '', target_model: 'gpt-4', seed_prompt: '' });
-      setShowCreateForm(false);
+      setNewSession({ 
+        name: '', 
+        target_model: '', 
+        seed_prompt: '', 
+        prompt_generation_llm: availableModels.length > 0 ? availableModels[0] : '', 
+        evaluation_llm: evaluationModels.length > 0 ? evaluationModels[0] : '' 
+      });
+      onCreateFormChange?.(false);
       await loadSessions();
     } catch (err) {
       setError(`Failed to create session: ${err.message}`);
@@ -76,7 +154,7 @@ export default function SessionManager() {
       {/* Create Session Button */}
       <div className="mb-6">
         <button
-          onClick={() => setShowCreateForm(!showCreateForm)}
+          onClick={() => onCreateFormChange?.(!showCreateForm)}
           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
         >
           {showCreateForm ? 'Cancel' : 'New Session'}
@@ -102,16 +180,70 @@ export default function SessionManager() {
               </div>
               <div>
                 <label className="block text-gray-300 mb-2">Target Model</label>
-                <select
+                <input
+                  type="text"
                   value={newSession.target_model}
                   onChange={(e) => setNewSession({ ...newSession, target_model: e.target.value })}
                   className="w-full p-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-purple-400"
+                  placeholder="gpt-4, claude-3-sonnet, llama-2, etc."
+                  required
+                />
+                <p className="text-xs text-gray-400 mt-1">The model you want to test against</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-gray-300 mb-2">Prompt Generation LLM</label>
+                <select
+                  value={newSession.prompt_generation_llm}
+                  onChange={(e) => setNewSession({ ...newSession, prompt_generation_llm: e.target.value })}
+                  className="w-full p-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-purple-400"
+                  required
+                  disabled={modelsLoading}
                 >
-                  <option value="gpt-4">GPT-4</option>
-                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                  <option value="claude-3">Claude-3</option>
-                  <option value="llama-2">Llama-2</option>
+                  {modelsLoading ? (
+                    <option value="">Loading models...</option>
+                  ) : availableModels.length === 0 ? (
+                    <option value="">No models available</option>
+                  ) : (
+                    <>
+                      <option value="">Select a model</option>
+                      {availableModels.map((model) => (
+                        <option key={model} value={model}>
+                          {model}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
+                <p className="text-xs text-gray-400 mt-1">LLM to generate attack prompts (configured in Settings)</p>
+              </div>
+              <div>
+                <label className="block text-gray-300 mb-2">Evaluation LLM</label>
+                <select
+                  value={newSession.evaluation_llm}
+                  onChange={(e) => setNewSession({ ...newSession, evaluation_llm: e.target.value })}
+                  className="w-full p-2 bg-gray-700 text-white rounded border border-gray-600 focus:border-purple-400"
+                  required
+                  disabled={evaluationModelsLoading}
+                >
+                  {evaluationModelsLoading ? (
+                    <option value="">Loading models...</option>
+                  ) : evaluationModels.length === 0 ? (
+                    <option value="">No models available</option>
+                  ) : (
+                    <>
+                      <option value="">Select a model</option>
+                      {evaluationModels.map((model) => (
+                        <option key={model} value={model}>
+                          {model}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">LLM to evaluate responses (configured in Settings)</p>
               </div>
             </div>
             <div className="mb-4">
@@ -133,7 +265,7 @@ export default function SessionManager() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowCreateForm(false)}
+                onClick={() => onCreateFormChange?.(false)}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition-colors"
               >
                 Cancel
@@ -160,6 +292,10 @@ export default function SessionManager() {
                   <h3 className="text-xl font-semibold text-purple-300">{session.name}</h3>
                   <p className="text-gray-400">Target: {session.target_model}</p>
                   <p className="text-gray-400">Status: <span className="text-cyan-400">{session.status}</span></p>
+                  <div className="text-xs text-gray-500 mt-1">
+                    <span>Gen: {session.prompt_generation_llm}</span> | 
+                    <span> Eval: {session.evaluation_llm}</span>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <button 

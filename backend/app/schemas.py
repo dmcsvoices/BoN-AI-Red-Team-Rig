@@ -7,6 +7,8 @@ class SessionBase(BaseModel):
     name: str
     target_model: str
     seed_prompt: str
+    prompt_generation_llm: str
+    evaluation_llm: str
     status: Optional[str] = "created"
 
 class SessionCreate(SessionBase):
@@ -16,6 +18,8 @@ class SessionUpdate(BaseModel):
     name: Optional[str] = None
     target_model: Optional[str] = None
     seed_prompt: Optional[str] = None
+    prompt_generation_llm: Optional[str] = None
+    evaluation_llm: Optional[str] = None
     status: Optional[str] = None
 
 class PromptVariantBase(BaseModel):
@@ -68,6 +72,8 @@ class SessionSummary(BaseModel):
     id: int
     name: str
     target_model: str
+    prompt_generation_llm: str
+    evaluation_llm: str
     status: str
     created_at: datetime
     prompt_count: int

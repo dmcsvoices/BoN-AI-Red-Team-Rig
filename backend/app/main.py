@@ -39,7 +39,9 @@ def get_sessions(db: DBSession = Depends(get_db)):
         test_session = Session(
             name="Test Session 1", 
             target_model="gpt-4",
-            seed_prompt="You are a helpful assistant that follows instructions precisely."
+            seed_prompt="You are a helpful assistant that follows instructions precisely.",
+            prompt_generation_llm="gpt-4",
+            evaluation_llm="claude-3-sonnet"
         )
         db.add(test_session)
         db.commit()
@@ -55,6 +57,8 @@ def get_sessions(db: DBSession = Depends(get_db)):
             id=session.id,
             name=session.name,
             target_model=session.target_model,
+            prompt_generation_llm=session.prompt_generation_llm,
+            evaluation_llm=session.evaluation_llm,
             status=session.status,
             created_at=session.created_at,
             prompt_count=prompt_count or 0,
@@ -155,3 +159,30 @@ def evaluate_response(
     db.refresh(response)
     
     return response
+
+# Model endpoints for frontend (to avoid CORS issues)
+@app.get("/api/models/prompt-generation")
+def get_prompt_generation_models(prompt_generation_url: str = "http://localhost:1234"):
+    """Fetch models from prompt generation server"""
+    try:
+        models_url = f"{prompt_generation_url}/v1/models"
+        response = requests.get(models_url, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise HTTPException(status_code=response.status_code, detail=f"Error from prompt generation server: {response.text}")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=503, detail=f"Could not connect to prompt generation server: {str(e)}")
+
+@app.get("/api/models/evaluation")
+def get_evaluation_models(evaluation_url: str = "http://172.27.0.93:11434"):
+    """Fetch models from evaluation server"""
+    try:
+        models_url = f"{evaluation_url}/v1/models"
+        response = requests.get(models_url, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise HTTPException(status_code=response.status_code, detail=f"Error from evaluation server: {response.text}")
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=503, detail=f"Could not connect to evaluation server: {str(e)}")
