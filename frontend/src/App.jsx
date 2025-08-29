@@ -10,7 +10,6 @@ function App() {
   const [currentView, setCurrentView] = useState('sessions');
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [sessionCount, setSessionCount] = useState(0);
-  const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     // Handle URL hash changes for navigation
@@ -52,11 +51,7 @@ function App() {
   }, []);
 
   const handleNavigate = (view, action) => {
-    if (view === 'sessions' && action === 'new') {
-      setCurrentView('sessions');
-      setShowCreateForm(true);
-      window.location.hash = '';
-    } else if (view === 'sessions') {
+    if (view === 'sessions') {
       setCurrentView('sessions');
       window.location.hash = '';
     } else {
@@ -74,7 +69,7 @@ function App() {
   const renderCurrentView = () => {
     switch (currentView) {
       case 'sessions':
-        return <SessionManager showCreateForm={showCreateForm} onCreateFormChange={setShowCreateForm} />;
+        return <SessionManager />;
       case 'session-detail':
         return selectedSessionId ? (
           <SessionDetail 
@@ -99,7 +94,7 @@ function App() {
       case 'settings':
         return <Settings />;
       default:
-        return <SessionManager showCreateForm={showCreateForm} onCreateFormChange={setShowCreateForm} />;
+        return <SessionManager />;
     }
   };
 

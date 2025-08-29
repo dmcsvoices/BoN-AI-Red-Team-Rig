@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getSessions, createSession, deleteSession } from '../api';
 
-export default function SessionManager({ showCreateForm = false, onCreateFormChange }) {
+export default function SessionManager() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -112,7 +112,6 @@ export default function SessionManager({ showCreateForm = false, onCreateFormCha
         prompt_generation_llm: availableModels.length > 0 ? availableModels[0] : '', 
         evaluation_llm: evaluationModels.length > 0 ? evaluationModels[0] : '' 
       });
-      onCreateFormChange?.(false);
       await loadSessions();
     } catch (err) {
       setError(`Failed to create session: ${err.message}`);
@@ -151,20 +150,76 @@ export default function SessionManager({ showCreateForm = false, onCreateFormCha
         </div>
       )}
 
-      {/* Create Session Button */}
-      <div className="mb-6">
-        <button
-          onClick={() => onCreateFormChange?.(!showCreateForm)}
-          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
-          {showCreateForm ? 'Cancel' : 'New Session'}
-        </button>
+      {/* Sessions Table */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-cyan-400 mb-4">Sessions ({sessions.length})</h2>
+        
+        {sessions.length === 0 ? (
+          <div className="text-center py-12 text-gray-400 bg-gray-800 rounded-lg border border-gray-600">
+            <p className="mb-4">No sessions yet</p>
+            <p className="text-sm">Create your first session below</p>
+          </div>
+        ) : (
+          <div className="bg-gray-800 rounded-lg border border-gray-600 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-900">
+                <tr>
+                  <th className="text-left p-4 text-purple-300 font-semibold">Session Name</th>
+                  <th className="text-left p-4 text-purple-300 font-semibold">Target Model</th>
+                  <th className="text-left p-4 text-purple-300 font-semibold">Status</th>
+                  <th className="text-left p-4 text-purple-300 font-semibold">Prompts</th>
+                  <th className="text-left p-4 text-purple-300 font-semibold">Responses</th>
+                  <th className="text-left p-4 text-purple-300 font-semibold">Created</th>
+                  <th className="text-left p-4 text-purple-300 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sessions.map((session) => (
+                  <tr 
+                    key={session.id} 
+                    className="border-t border-gray-700 hover:bg-gray-750 cursor-pointer transition-colors"
+                    onClick={() => window.location.hash = `session/${session.id}`}
+                  >
+                    <td className="p-4">
+                      <div className="text-purple-300 font-medium">{session.name}</div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Gen: {session.prompt_generation_llm} | Eval: {session.evaluation_llm}
+                      </div>
+                    </td>
+                    <td className="p-4 text-gray-300">{session.target_model}</td>
+                    <td className="p-4">
+                      <span className="text-cyan-400 bg-cyan-900/30 px-2 py-1 rounded text-sm">
+                        {session.status}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center text-gray-300">{session.prompt_count}</td>
+                    <td className="p-4 text-center text-gray-300">{session.response_count}</td>
+                    <td className="p-4 text-gray-400 text-sm">
+                      {new Date(session.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="p-4">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteSession(session.id);
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
-      {/* Create Session Form */}
-      {showCreateForm && (
-        <div className="mb-8 p-6 bg-gray-800 rounded-lg border border-purple-500">
-          <h2 className="text-xl font-semibold text-cyan-400 mb-4">Create New Session</h2>
+      {/* New Session Form */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-semibold text-cyan-400 mb-4">Create New Session</h2>
+        <div className="p-6 bg-gray-800 rounded-lg border border-purple-500">
           <form onSubmit={handleCreateSession}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
@@ -259,77 +314,13 @@ export default function SessionManager({ showCreateForm = false, onCreateFormCha
             <div className="flex gap-2">
               <button
                 type="submit"
-                className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded transition-colors"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
               >
                 Create Session
-              </button>
-              <button
-                type="button"
-                onClick={() => onCreateFormChange?.(false)}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition-colors"
-              >
-                Cancel
               </button>
             </div>
           </form>
         </div>
-      )}
-
-      {/* Sessions List */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-semibold text-cyan-400 mb-4">Sessions ({sessions.length})</h2>
-        
-        {sessions.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <p className="mb-4">No sessions yet</p>
-            <p className="text-sm">Click "New Session" to create your first session</p>
-          </div>
-        ) : (
-          sessions.map((session) => (
-            <div key={session.id} className="bg-gray-800 p-6 rounded-lg border border-gray-600">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-xl font-semibold text-purple-300">{session.name}</h3>
-                  <p className="text-gray-400">Target: {session.target_model}</p>
-                  <p className="text-gray-400">Status: <span className="text-cyan-400">{session.status}</span></p>
-                  <div className="text-xs text-gray-500 mt-1">
-                    <span>Gen: {session.prompt_generation_llm}</span> | 
-                    <span> Eval: {session.evaluation_llm}</span>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => window.location.hash = `session/${session.id}`}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                  >
-                    Open
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteSession(session.id)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 text-sm text-gray-300">
-                <div>
-                  <span className="text-purple-300">Created:</span><br />
-                  {new Date(session.created_at).toLocaleString()}
-                </div>
-                <div>
-                  <span className="text-purple-300">Prompts:</span><br />
-                  {session.prompt_count}
-                </div>
-                <div>
-                  <span className="text-purple-300">Responses:</span><br />
-                  {session.response_count}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
       </div>
 
       {/* Status Footer */}
