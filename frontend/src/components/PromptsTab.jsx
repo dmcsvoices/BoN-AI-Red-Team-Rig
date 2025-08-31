@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { updateSession, generatePrompt, savePromptVariant } from '../api';
+import { updateSession, generatePrompt, savePromptVariant, getAttackEvasions } from '../api';
 import { ATTACK_TECHNIQUES } from '../data/attackTechniques';
+import { PROMPT_TEMPLATES, TEMPLATE_CATEGORIES, getTemplatesByCategory } from '../data/promptTemplates';
+import { clientEvasionEngine } from '../utils/evasions';
+import TemplateProcessor from '../utils/templateProcessor';
 
 const SYNTHWAVE_COLORS = {
   background: "#0d001a",
@@ -13,24 +16,26 @@ const SYNTHWAVE_COLORS = {
   border: "#4d0099"
 };
 
-function PromptsTab({ sessions, selectedGenModel, settings }) {
-  const [selectedSessionId, setSelectedSessionId] = useState('');
-  const [selectedSession, setSelectedSession] = useState(null);
+function PromptsTab({ selectedSession, selectedGenModel, settings }) {
   const [seedPrompt, setSeedPrompt] = useState('');
   const [selectedTechnique, setSelectedTechnique] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templatePlaceholders, setTemplatePlaceholders] = useState({});
+  const [selectedEvasion, setSelectedEvasion] = useState('');
+  const [attackEvasions, setAttackEvasions] = useState([]);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [evasionPrompt, setEvasionPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingTemplate, setIsGeneratingTemplate] = useState(false);
+  const [isGeneratingEvasion, setIsGeneratingEvasion] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [generationMode, setGenerationMode] = useState('llm'); // 'llm' or 'template'
 
   useEffect(() => {
-    if (selectedSessionId && sessions.length > 0) {
-      const session = sessions.find(s => s.id === parseInt(selectedSessionId));
-      if (session) {
-        setSelectedSession(session);
-        setSeedPrompt(session.seed_prompt);
-      }
+    if (selectedSession) {
+      setSeedPrompt(selectedSession.seed_prompt);
     }
-  }, [selectedSessionId, sessions]);
+  }, [selectedSession]);
 
   // Set default technique if none selected
   useEffect(() => {
@@ -38,6 +43,22 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
       setSelectedTechnique(ATTACK_TECHNIQUES[0].id);
     }
   }, [selectedTechnique]);
+
+  // Load attack evasions on mount
+  useEffect(() => {
+    loadAttackEvasions();
+  }, []);
+
+  const loadAttackEvasions = async () => {
+    try {
+      const evasions = await getAttackEvasions();
+      setAttackEvasions(evasions);
+      console.log('Loaded attack evasions:', evasions);
+    } catch (error) {
+      console.error('Error loading attack evasions:', error);
+      setAttackEvasions([]);
+    }
+  };
 
   const handleSaveSeedPrompt = async () => {
     if (!selectedSession) {
@@ -78,6 +99,7 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
         base_url: settings.promptGenUrl
       });
       setGeneratedPrompt(result.text);
+      setEvasionPrompt(''); // Clear evasion prompt when new base prompt is generated
     } catch (error) {
       console.error('Error generating prompt:', error);
       alert('Error generating prompt: ' + error.message);
@@ -86,12 +108,71 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
     }
   };
 
+  const handleGenerateTemplate = async () => {
+    if (!selectedTemplate) {
+      alert('Please select a template');
+      return;
+    }
+
+    setIsGeneratingTemplate(true);
+    try {
+      const template = PROMPT_TEMPLATES.find(t => t.id === parseInt(selectedTemplate));
+      if (!template) {
+        alert('Template not found');
+        return;
+      }
+
+      // Use seed prompt and any additional placeholder values
+      const placeholderValues = { ...templatePlaceholders };
+      
+      // For templates that need encoded content, handle specially
+      if (template.name === 'Base64 Token Smuggling' && seedPrompt) {
+        placeholderValues['$1'] = TemplateProcessor.encodeBase64(seedPrompt);
+      } else if (template.name === 'ROT13 Token Smuggling' && seedPrompt) {
+        placeholderValues['$1'] = TemplateProcessor.encodeROT13(seedPrompt);
+      }
+
+      const processedPrompt = TemplateProcessor.processTemplate(template, seedPrompt, placeholderValues);
+      setGeneratedPrompt(processedPrompt);
+      setEvasionPrompt(''); // Clear evasion prompt when new base prompt is generated
+    } catch (error) {
+      console.error('Error generating template:', error);
+      alert('Error generating template: ' + error.message);
+    } finally {
+      setIsGeneratingTemplate(false);
+    }
+  };
+
+  const handleGenerateEvasion = async () => {
+    if (!generatedPrompt.trim()) {
+      alert('Please generate a base prompt first');
+      return;
+    }
+    if (!selectedEvasion) {
+      alert('Please select an evasion technique');
+      return;
+    }
+
+    setIsGeneratingEvasion(true);
+    try {
+      const transformedText = clientEvasionEngine.applyEvasion(generatedPrompt, selectedEvasion);
+      setEvasionPrompt(transformedText);
+    } catch (error) {
+      console.error('Error generating evasion:', error);
+      alert('Error applying evasion: ' + error.message);
+    } finally {
+      setIsGeneratingEvasion(false);
+    }
+  };
+
   const handleSavePrompt = async () => {
     if (!selectedSession) {
       alert('Please select a session first');
       return;
     }
-    if (!generatedPrompt.trim()) {
+    // Determine which prompt to save (evasion if available, otherwise base)
+    const promptToSave = evasionPrompt.trim() || generatedPrompt.trim();
+    if (!promptToSave) {
       alert('No prompt to save');
       return;
     }
@@ -99,10 +180,12 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
     setIsSaving(true);
     try {
       await savePromptVariant(selectedSession.id, {
-        text: generatedPrompt,
-        attack_technique: selectedTechnique
+        text: promptToSave,
+        attack_technique: selectedTechnique,
+        evasion_technique: evasionPrompt.trim() ? selectedEvasion : null,
+        pre_evasion_text: evasionPrompt.trim() ? generatedPrompt : null
       });
-      alert('Prompt saved successfully! It will be available in the Review tab.');
+      alert(`Prompt saved successfully${evasionPrompt.trim() ? ' (with evasion)' : ''}! It will be available in the Review tab.`);
     } catch (error) {
       console.error('Error saving prompt:', error);
       alert('Error saving prompt: ' + error.message);
@@ -111,29 +194,41 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
     }
   };
 
+  if (!selectedSession) {
+    return (
+      <div style={{ maxWidth: '900px' }}>
+        <h2 style={{ color: SYNTHWAVE_COLORS.primary, marginBottom: '20px' }}>Prompt Generation</h2>
+        <div style={{
+          padding: '40px',
+          textAlign: 'center',
+          backgroundColor: SYNTHWAVE_COLORS.card,
+          border: `1px solid ${SYNTHWAVE_COLORS.border}`,
+          borderRadius: '8px'
+        }}>
+          <h3 style={{ color: SYNTHWAVE_COLORS.secondary, marginBottom: '15px' }}>
+            No Session Selected
+          </h3>
+          <p style={{ color: SYNTHWAVE_COLORS.textSecondary, marginBottom: '20px' }}>
+            Please select a session from the dropdown in the header above, or create a new session in the Sessions tab.
+          </p>
+          <p style={{ color: SYNTHWAVE_COLORS.accent, fontSize: '14px' }}>
+            💡 Tip: You can create a new session in the Sessions tab and it will automatically be available in the header dropdown.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: '900px' }}>
-      <h2 style={{ color: SYNTHWAVE_COLORS.primary, marginBottom: '20px' }}>Prompt Generation</h2>
+      <h2 style={{ color: SYNTHWAVE_COLORS.primary, marginBottom: '20px' }}>
+        Prompt Generation
+        <span style={{ color: SYNTHWAVE_COLORS.secondary, fontSize: '16px', marginLeft: '20px' }}>
+          Session: {selectedSession.name}
+        </span>
+      </h2>
 
-      {/* Session Selection */}
-      <div className="form-group">
-        <label className="form-label">Select Session:</label>
-        <select
-          className="select"
-          value={selectedSessionId}
-          onChange={(e) => setSelectedSessionId(e.target.value)}
-          style={{ width: '100%', padding: '10px' }}
-        >
-          <option value="">Choose a session...</option>
-          {sessions.map(session => (
-            <option key={session.id} value={session.id}>
-              {session.id}: {session.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {selectedSession && (
+      {(
         <>
           {/* Seed Prompt Editor */}
           <div className="form-group">
@@ -159,12 +254,96 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
             </button>
           </div>
 
-          {/* Attack Technique Selection */}
+          {/* Generation Mode Selection */}
           <div className="form-group">
-            <label className="form-label">Select Attack Technique:</label>
-            <select
-              className="select"
-              value={selectedTechnique}
+            <label className="form-label">Prompt Generation Mode:</label>
+            <div style={{ display: 'flex', gap: '15px', marginTop: '10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: SYNTHWAVE_COLORS.text }}>
+                <input
+                  type="radio"
+                  value="llm"
+                  checked={generationMode === 'llm'}
+                  onChange={(e) => setGenerationMode(e.target.value)}
+                />
+                LLM Generation
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: SYNTHWAVE_COLORS.text }}>
+                <input
+                  type="radio"
+                  value="template"
+                  checked={generationMode === 'template'}
+                  onChange={(e) => setGenerationMode(e.target.value)}
+                />
+                Template-Based
+              </label>
+            </div>
+          </div>
+
+          {/* Template Selection (when template mode is selected) */}
+          {generationMode === 'template' && (
+            <div className="form-group">
+              <label className="form-label">Select Template:</label>
+              <select
+                className="select"
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                style={{ width: '100%', padding: '10px' }}
+              >
+                <option value="">Choose a template...</option>
+                {Object.entries(TEMPLATE_CATEGORIES).map(([category, categoryName]) => {
+                  const templates = getTemplatesByCategory(category);
+                  return templates.length > 0 ? (
+                    <optgroup key={category} label={categoryName}>
+                      {templates.map(template => (
+                        <option key={template.id} value={template.id}>
+                          {template.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ) : null;
+                })}
+              </select>
+              
+              {selectedTemplate && (() => {
+                const template = PROMPT_TEMPLATES.find(t => t.id === parseInt(selectedTemplate));
+                return template && (
+                  <div style={{ 
+                    marginTop: '10px', 
+                    padding: '10px', 
+                    background: SYNTHWAVE_COLORS.card,
+                    border: `1px solid ${SYNTHWAVE_COLORS.border}`,
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    color: SYNTHWAVE_COLORS.textSecondary
+                  }}>
+                    <strong>Description:</strong> {template.description}
+                    <br />
+                    <strong>Category:</strong> {TEMPLATE_CATEGORIES[template.category]}
+                    {template.placeholders.length > 0 && (
+                      <>
+                        <br /><br />
+                        <strong>Placeholders:</strong>
+                        {template.placeholders.map(placeholder => (
+                          <div key={placeholder.key} style={{ marginTop: '5px', fontSize: '12px' }}>
+                            • <code>{placeholder.key}</code>: {placeholder.description}
+                            {placeholder.example && <em> (e.g., "{placeholder.example}")</em>}
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Attack Technique Selection (when LLM mode is selected) */}
+          {generationMode === 'llm' && (
+            <div className="form-group">
+              <label className="form-label">Select Attack Technique:</label>
+              <select
+                className="select"
+                value={selectedTechnique}
               onChange={(e) => setSelectedTechnique(e.target.value)}
               style={{ width: '100%', padding: '10px' }}
             >
@@ -188,26 +367,30 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
                 {ATTACK_TECHNIQUES.find(t => t.id === selectedTechnique)?.description}
               </div>
             )}
-          </div>
+            </div>
+          )}
 
           {/* Generate Button */}
           <div className="form-group">
             <button
-              onClick={handleGeneratePrompt}
-              disabled={isGenerating || !selectedGenModel}
+              onClick={generationMode === 'llm' ? handleGeneratePrompt : handleGenerateTemplate}
+              disabled={
+                (generationMode === 'llm' && (isGenerating || !selectedGenModel)) ||
+                (generationMode === 'template' && (isGeneratingTemplate || !selectedTemplate))
+              }
               className="btn"
               style={{ 
                 width: '200px',
-                background: isGenerating ? '#666666' : SYNTHWAVE_COLORS.accent
+                background: (isGenerating || isGeneratingTemplate) ? '#666666' : SYNTHWAVE_COLORS.accent
               }}
             >
-              {isGenerating ? (
+              {(isGenerating || isGeneratingTemplate) ? (
                 <>
                   <span className="loading" style={{ marginRight: '10px' }}></span>
                   Generating...
                 </>
               ) : (
-                'Generate Prompt'
+                generationMode === 'llm' ? 'Generate with LLM' : 'Generate from Template'
               )}
             </button>
           </div>
@@ -227,31 +410,123 @@ function PromptsTab({ sessions, selectedGenModel, settings }) {
               }}
               placeholder="Generated attack prompt will appear here..."
             />
-            
-            {/* Save Prompt Button */}
-            {generatedPrompt.trim() && (
-              <button
-                onClick={handleSavePrompt}
-                disabled={isSaving}
-                className="btn"
-                style={{ 
-                  marginTop: '10px',
-                  width: '150px',
-                  background: isSaving ? '#666666' : SYNTHWAVE_COLORS.secondary,
-                  color: SYNTHWAVE_COLORS.background
-                }}
-              >
-                {isSaving ? (
-                  <>
-                    <span className="loading" style={{ marginRight: '10px' }}></span>
-                    Saving...
-                  </>
-                ) : (
-                  'Save Prompt'
-                )}
-              </button>
-            )}
           </div>
+
+          {/* Attack Evasion Section */}
+          {generatedPrompt.trim() && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Attack Evasion (Optional):</label>
+                <select
+                  className="select"
+                  value={selectedEvasion}
+                  onChange={(e) => setSelectedEvasion(e.target.value)}
+                  style={{ width: '100%', padding: '10px' }}
+                >
+                  <option value="">None (No Evasion)</option>
+                  {attackEvasions
+                    .sort((a, b) => a.category.localeCompare(b.category) || a.display_name.localeCompare(b.display_name))
+                    .reduce((acc, evasion) => {
+                      // Group by category
+                      if (!acc.find(item => item.category === evasion.category)) {
+                        acc.push({
+                          category: evasion.category,
+                          techniques: attackEvasions.filter(e => e.category === evasion.category)
+                        });
+                      }
+                      return acc;
+                    }, [])
+                    .map(group => (
+                      <optgroup key={group.category} label={group.category.charAt(0).toUpperCase() + group.category.slice(1)}>
+                        {group.techniques.map(technique => (
+                          <option key={technique.id} value={technique.name} title={technique.description}>
+                            {technique.display_name}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))
+                  }
+                </select>
+                
+                {selectedEvasion && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '8px 12px',
+                    backgroundColor: SYNTHWAVE_COLORS.card,
+                    border: `1px solid ${SYNTHWAVE_COLORS.secondary}`,
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    color: SYNTHWAVE_COLORS.secondary
+                  }}>
+                    <strong>Selected:</strong> {attackEvasions.find(e => e.name === selectedEvasion)?.display_name}
+                    <br />
+                    <strong>Description:</strong> {attackEvasions.find(e => e.name === selectedEvasion)?.description}
+                  </div>
+                )}
+
+                {/* Generate Evasion Button */}
+                {selectedEvasion && (
+                  <div style={{ marginTop: '15px' }}>
+                    <button
+                      onClick={handleGenerateEvasion}
+                      disabled={isGeneratingEvasion}
+                      className="btn"
+                      style={{
+                        background: isGeneratingEvasion ? '#666666' : SYNTHWAVE_COLORS.accent,
+                        width: '150px'
+                      }}
+                    >
+                      {isGeneratingEvasion ? 'Generating...' : 'Generate Evasion'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Generated Prompt with Evasion */}
+              {evasionPrompt.trim() && (
+                <div className="form-group">
+                  <label className="form-label">Generated Prompt with Evasion:</label>
+                  <textarea
+                    className="textarea"
+                    value={evasionPrompt}
+                    onChange={(e) => setEvasionPrompt(e.target.value)}
+                    style={{ 
+                      width: '100%', 
+                      minHeight: '200px',
+                      fontFamily: 'monospace',
+                      fontSize: '13px',
+                      backgroundColor: '#0a0a0a',
+                      border: `2px solid ${SYNTHWAVE_COLORS.accent}`
+                    }}
+                    placeholder="Evasion-transformed prompt will appear here..."
+                  />
+                </div>
+              )}
+
+              {/* Save Prompt Button */}
+              <div style={{ marginTop: '15px' }}>
+                <button
+                  onClick={handleSavePrompt}
+                  disabled={isSaving}
+                  className="btn"
+                  style={{
+                    background: isSaving ? '#666666' : SYNTHWAVE_COLORS.secondary,
+                    color: SYNTHWAVE_COLORS.background,
+                    width: '200px'
+                  }}
+                >
+                  {isSaving ? (
+                    <>
+                      <span className="loading" style={{ marginRight: '10px' }}></span>
+                      Saving...
+                    </>
+                  ) : (
+                    `Save Prompt${evasionPrompt.trim() ? ' (with Evasion)' : ''}`
+                  )}
+                </button>
+              </div>
+            </>
+          )}
 
           {/* Current Model Info */}
           <div style={{

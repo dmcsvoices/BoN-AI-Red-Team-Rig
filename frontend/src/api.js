@@ -95,5 +95,8 @@ export const getEvaluationModels = (baseUrl = 'http://172.27.0.93:11434/v1') => 
   return apiRequest(`/models/evaluation?${params}`);
 };
 
+// Attack evasions endpoint
+export const getAttackEvasions = () => apiRequest('/attack-evasions');
+
 // Health check
 export const healthCheck = () => apiRequest('/health');

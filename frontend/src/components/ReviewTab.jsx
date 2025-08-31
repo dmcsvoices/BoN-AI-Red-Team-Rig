@@ -12,9 +12,7 @@ const SYNTHWAVE_COLORS = {
   border: "#4d0099"
 };
 
-function ReviewTab({ sessions, selectedEvalModel, settings }) {
-  const [selectedSessionId, setSelectedSessionId] = useState('');
-  const [selectedSession, setSelectedSession] = useState(null);
+function ReviewTab({ selectedSession, selectedEvalModel, settings }) {
   const [testPrompt, setTestPrompt] = useState('');
   const [targetResponse, setTargetResponse] = useState('');
   const [evaluationResult, setEvaluationResult] = useState('');
@@ -26,14 +24,10 @@ function ReviewTab({ sessions, selectedEvalModel, settings }) {
   const [feedbackSaving, setFeedbackSaving] = useState(false);
 
   useEffect(() => {
-    if (selectedSessionId && sessions.length > 0) {
-      const session = sessions.find(s => s.id === parseInt(selectedSessionId));
-      if (session) {
-        setSelectedSession(session);
-        loadSessionPrompts(session.id);
-      }
+    if (selectedSession) {
+      loadSessionPrompts(selectedSession.id);
     }
-  }, [selectedSessionId, sessions]);
+  }, [selectedSession]);
 
   const loadSessionPrompts = async (sessionId) => {
     try {
@@ -167,29 +161,41 @@ function ReviewTab({ sessions, selectedEvalModel, settings }) {
   const isDangerous = evaluationResult.toLowerCase().includes('yes');
   const isSafe = evaluationResult.toLowerCase().includes('no');
 
+  if (!selectedSession) {
+    return (
+      <div style={{ maxWidth: '900px' }}>
+        <h2 style={{ color: SYNTHWAVE_COLORS.primary, marginBottom: '20px' }}>Response Review & Evaluation</h2>
+        <div style={{
+          padding: '40px',
+          textAlign: 'center',
+          backgroundColor: SYNTHWAVE_COLORS.card,
+          border: `1px solid ${SYNTHWAVE_COLORS.border}`,
+          borderRadius: '8px'
+        }}>
+          <h3 style={{ color: SYNTHWAVE_COLORS.secondary, marginBottom: '15px' }}>
+            No Session Selected
+          </h3>
+          <p style={{ color: SYNTHWAVE_COLORS.textSecondary, marginBottom: '20px' }}>
+            Please select a session from the dropdown in the header above to begin evaluating responses.
+          </p>
+          <p style={{ color: SYNTHWAVE_COLORS.accent, fontSize: '14px' }}>
+            💡 Tip: Generate some prompts first in the Prompts tab, then come here to evaluate responses from your target model.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: '900px' }}>
-      <h2 style={{ color: SYNTHWAVE_COLORS.primary, marginBottom: '20px' }}>Response Review & Evaluation</h2>
+      <h2 style={{ color: SYNTHWAVE_COLORS.primary, marginBottom: '20px' }}>
+        Response Review & Evaluation
+        <span style={{ color: SYNTHWAVE_COLORS.secondary, fontSize: '16px', marginLeft: '20px' }}>
+          Session: {selectedSession.name}
+        </span>
+      </h2>
 
-      {/* Session Selection */}
-      <div className="form-group">
-        <label className="form-label">Select Session:</label>
-        <select
-          className="select"
-          value={selectedSessionId}
-          onChange={(e) => setSelectedSessionId(e.target.value)}
-          style={{ width: '100%', padding: '10px' }}
-        >
-          <option value="">Choose a session...</option>
-          {sessions.map(session => (
-            <option key={session.id} value={session.id}>
-              {session.id}: {session.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {selectedSession && (
+      {(
         <>
           {/* Prompt Selection */}
           {availablePrompts.length > 0 && (

@@ -2,8 +2,9 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session as DBSession
 from sqlalchemy import func
-from .database import SessionLocal, Session, PromptVariant, Response
+from .database import SessionLocal, Session, PromptVariant, Response, AttackEvasion
 from . import schemas
+from .evasions import apply_attack_evasion
 from typing import List
 import requests
 from datetime import datetime
@@ -170,6 +171,7 @@ def generate_prompt(
         raise HTTPException(status_code=404, detail="Session not found")
     
     attack_technique = request_data.get("attack_technique")
+    evasion_technique = request_data.get("evasion_technique")  # New parameter
     generation_model = request_data.get("generation_model")
     base_url = request_data.get("base_url", "http://localhost:1234")
     
@@ -196,11 +198,21 @@ def generate_prompt(
         else:
             generated_text = f"[Generated using {attack_technique}] {session.seed_prompt}"
         
+        # Apply evasion technique if specified
+        if evasion_technique and evasion_technique.strip():
+            print(f"Applying evasion technique: {evasion_technique}")
+            final_text, original_text = apply_attack_evasion(generated_text, evasion_technique)
+        else:
+            final_text = generated_text
+            original_text = generated_text
+        
         # Create prompt variant
         variant = PromptVariant(
             session_id=session_id,
-            text=generated_text,
-            attack_technique=attack_technique
+            text=final_text,
+            attack_technique=attack_technique,
+            evasion_technique=evasion_technique if evasion_technique and evasion_technique.strip() else None,
+            pre_evasion_text=original_text if evasion_technique and evasion_technique.strip() else None
         )
         db.add(variant)
         db.commit()
@@ -227,6 +239,8 @@ def save_prompt_variant(
             session_id=session_id,
             text=request_data.get("text"),
             attack_technique=request_data.get("attack_technique"),
+            evasion_technique=request_data.get("evasion_technique"),
+            pre_evasion_text=request_data.get("pre_evasion_text"),
             approved=True  # User manually saved, so mark as approved
         )
         db.add(variant)
@@ -351,6 +365,26 @@ def evaluate_response(
         return response_record
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error evaluating response: {str(e)}")
+
+# Attack evasions endpoint
+@app.get("/api/attack-evasions")
+def get_attack_evasions(db: DBSession = Depends(get_db)):
+    """Get all available attack evasion techniques"""
+    evasions = db.query(AttackEvasion).filter(
+        AttackEvasion.implementation_status == "available"
+    ).order_by(AttackEvasion.category, AttackEvasion.display_name).all()
+    
+    return [
+        {
+            "id": evasion.id,
+            "name": evasion.name,
+            "display_name": evasion.display_name,
+            "category": evasion.category,
+            "description": evasion.description,
+            "is_reversible": evasion.is_reversible
+        }
+        for evasion in evasions
+    ]
 
 # Human feedback endpoint
 @app.post("/api/sessions/{session_id}/human-feedback")

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPromptGenerationModels, getEvaluationModels } from './api';
+import { getPromptGenerationModels, getEvaluationModels, getSessions } from './api';
 import SessionsTab from './components/SessionsTab';
 import PromptsTab from './components/PromptsTab';
 import ReviewTab from './components/ReviewTab';
@@ -29,6 +29,8 @@ function App() {
     evaluationUrl: 'http://172.27.0.93:11434/v1'
   });
   const [sessions, setSessions] = useState([]);
+  const [selectedSessionId, setSelectedSessionId] = useState('');
+  const [selectedSession, setSelectedSession] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Load settings from localStorage
@@ -54,6 +56,21 @@ function App() {
   useEffect(() => {
     loadModels();
   }, [settings]);
+
+  // Load sessions on mount and when refresh is triggered
+  useEffect(() => {
+    loadSessions();
+  }, [refreshTrigger]);
+
+  // Update selected session when session ID changes
+  useEffect(() => {
+    if (selectedSessionId && sessions.length > 0) {
+      const session = sessions.find(s => s.id === parseInt(selectedSessionId));
+      setSelectedSession(session || null);
+    } else {
+      setSelectedSession(null);
+    }
+  }, [selectedSessionId, sessions]);
 
   const loadModels = async () => {
     console.log('Loading models with settings:', settings);
@@ -107,6 +124,16 @@ function App() {
     }
   };
 
+  const loadSessions = async () => {
+    try {
+      const data = await getSessions();
+      setSessions(data);
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+      setSessions([]);
+    }
+  };
+
   const saveSettings = (newSettings) => {
     setSettings(newSettings);
     localStorage.setItem('bon-hitl-settings', JSON.stringify(newSettings));
@@ -134,10 +161,35 @@ function App() {
           fontSize: '24px',
           textShadow: '0 0 10px rgba(255, 0, 255, 0.5)'
         }}>
-          Tikbalang Best-of-N Jailbreaking Prompt Generator and Evaluator
+          PromptAudit - AI Red Team Testing Platform
         </h1>
         
-        <div className="model-selectors" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+        <div className="model-selectors" style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ color: SYNTHWAVE_COLORS.text, minWidth: '100px' }}>
+              Session:
+            </label>
+            <select 
+              value={selectedSessionId} 
+              onChange={(e) => setSelectedSessionId(e.target.value)}
+              style={{
+                padding: '5px 10px',
+                backgroundColor: SYNTHWAVE_COLORS.card,
+                color: sessions.length === 0 ? SYNTHWAVE_COLORS.textSecondary : SYNTHWAVE_COLORS.text,
+                border: `1px solid ${sessions.length === 0 ? '#ff4444' : SYNTHWAVE_COLORS.border}`,
+                borderRadius: '4px',
+                minWidth: '200px'
+              }}
+            >
+              <option value="">Select a session...</option>
+              {sessions.map(session => (
+                <option key={session.id} value={session.id}>
+                  {session.id}: {session.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <label style={{ color: SYNTHWAVE_COLORS.text, minWidth: '140px' }}>
               Prompt Gen Model:
@@ -254,14 +306,14 @@ function App() {
           )}
           {activeTab === 'prompts' && (
             <PromptsTab 
-              sessions={sessions}
+              selectedSession={selectedSession}
               selectedGenModel={selectedGenModel}
               settings={settings}
             />
           )}
           {activeTab === 'review' && (
             <ReviewTab 
-              sessions={sessions}
+              selectedSession={selectedSession}
               selectedEvalModel={selectedEvalModel}
               settings={settings}
             />
