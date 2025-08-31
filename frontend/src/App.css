@@ -1,42 +1,178 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* Synthwave Theme CSS */
+body {
+  margin: 0;
+  padding: 0;
+  background: #0d001a;
+  color: #ffffff;
+  font-family: Arial, sans-serif;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+* {
+  box-sizing: border-box;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.app {
+  min-height: 100vh;
+  background: #0d001a;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Custom scrollbar for synthwave theme */
+::-webkit-scrollbar {
+  width: 12px;
 }
 
+::-webkit-scrollbar-track {
+  background: #1a002e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4d0099;
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #ff00ff;
+}
+
+/* Button styles */
+.btn {
+  padding: 10px 20px;
+  border: 1px solid #4d0099;
+  background: #ff0080;
+  color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.btn:hover {
+  background: #ff00ff;
+  box-shadow: 0 0 10px rgba(255, 0, 255, 0.5);
+}
+
+.btn:disabled {
+  background: #666666;
+  border-color: #666666;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Input styles */
+.input, .textarea, .select {
+  background: #1a002e;
+  border: 1px solid #4d0099;
+  color: #ffffff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.input:focus, .textarea:focus, .select:focus {
+  outline: none;
+  border-color: #ff00ff;
+  box-shadow: 0 0 5px rgba(255, 0, 255, 0.3);
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: monospace;
+}
+
+/* Card styles */
 .card {
-  padding: 2em;
+  background: #1a002e;
+  border: 1px solid #4d0099;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
 }
 
-.read-the-docs {
-  color: #888;
+/* List styles */
+.list-item {
+  padding: 10px;
+  border-bottom: 1px solid #4d0099;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.list-item:hover {
+  background-color: #2a0040;
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+/* Form styles */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #a0a0ff;
+  font-weight: bold;
+}
+
+/* Technique selector styles */
+.technique-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.technique-option {
+  background: #1a002e;
+  border: 1px solid #4d0099;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.technique-option:hover {
+  border-color: #ff00ff;
+  background: #2a0040;
+}
+
+.technique-option.selected {
+  background: #ff0080;
+  border-color: #ff00ff;
+}
+
+/* Loading spinner */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #4d0099;
+  border-radius: 50%;
+  border-top-color: #ff00ff;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .main-content {
+    flex-direction: column;
+  }
+  
+  .tabs {
+    width: 100% !important;
+    display: flex !important;
+    overflow-x: auto;
+  }
+  
+  .tabs button {
+    white-space: nowrap;
+    min-width: 120px;
+  }
 }

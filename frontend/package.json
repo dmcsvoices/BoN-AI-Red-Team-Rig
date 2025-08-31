@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "start": "vite --port 60000 --host",
     "build": "vite build",
+    "preview": "vite preview --port 60000 --host",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "clean": "rm -rf dist node_modules/.vite"
   },
   "dependencies": {
     "axios": "^1.11.0",

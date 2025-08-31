@@ -49,11 +49,29 @@ class Response(Base):
     target_response = Column(Text)
     evaluation_result = Column(Text)
     is_dangerous = Column(Boolean, default=None)  # None=not evaluated, True/False=dangerous/safe
+    human_feedback = Column(String, default=None)  # None=not reviewed, "Correct"/"Wrong"=human evaluation
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
     session = relationship("Session", back_populates="responses")
     prompt_variant = relationship("PromptVariant", back_populates="responses")
 
-# Create tables
+# Check if human_feedback column exists, add it if not
+from sqlalchemy import inspect, text
+
+def migrate_database():
+    inspector = inspect(engine)
+    
+    # Check if responses table exists and has human_feedback column
+    if 'responses' in inspector.get_table_names():
+        columns = [col['name'] for col in inspector.get_columns('responses')]
+        if 'human_feedback' not in columns:
+            print("Adding human_feedback column to responses table...")
+            with engine.connect() as conn:
+                conn.execute(text('ALTER TABLE responses ADD COLUMN human_feedback VARCHAR'))
+                conn.commit()
+            print("human_feedback column added successfully")
+    
+# Create tables and run migrations
 Base.metadata.create_all(bind=engine)
+migrate_database()

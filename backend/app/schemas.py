@@ -35,6 +35,7 @@ class ResponseBase(BaseModel):
     target_response: Optional[str] = None
     evaluation_result: Optional[str] = None
     is_dangerous: Optional[bool] = None
+    human_feedback: Optional[str] = None
 
 class ResponseCreate(ResponseBase):
     session_id: int
@@ -72,6 +73,7 @@ class SessionSummary(BaseModel):
     id: int
     name: str
     target_model: str
+    seed_prompt: str
     prompt_generation_llm: str
     evaluation_llm: str
     status: str

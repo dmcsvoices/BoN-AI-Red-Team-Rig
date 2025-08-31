@@ -1,113 +1,279 @@
 import { useState, useEffect } from 'react';
-import Navigation from './components/Navigation';
-import SessionManager from './components/SessionManager';
-import SessionDetail from './components/SessionDetail';
-import Settings from './components/Settings';
-import { getSessions } from './api';
-import './index.css';
+import { getPromptGenerationModels, getEvaluationModels } from './api';
+import SessionsTab from './components/SessionsTab';
+import PromptsTab from './components/PromptsTab';
+import ReviewTab from './components/ReviewTab';
+import SettingsTab from './components/SettingsTab';
+import './App.css';
+
+// Synthwave color scheme from POC1.py
+const SYNTHWAVE_COLORS = {
+  background: "#0d001a",
+  primary: "#ff00ff",
+  secondary: "#00ffff",
+  accent: "#ff0080",
+  text: "#ffffff",
+  textSecondary: "#a0a0ff",
+  card: "#1a002e",
+  border: "#4d0099"
+};
 
 function App() {
-  const [currentView, setCurrentView] = useState('sessions');
-  const [selectedSessionId, setSelectedSessionId] = useState(null);
-  const [sessionCount, setSessionCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('sessions');
+  const [genModels, setGenModels] = useState([]);
+  const [evalModels, setEvalModels] = useState([]);
+  const [selectedGenModel, setSelectedGenModel] = useState('');
+  const [selectedEvalModel, setSelectedEvalModel] = useState('');
+  const [settings, setSettings] = useState({
+    promptGenUrl: 'http://localhost:1234/v1',
+    evaluationUrl: 'http://172.27.0.93:11434/v1'
+  });
+  const [sessions, setSessions] = useState([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // Load settings from localStorage
   useEffect(() => {
-    // Handle URL hash changes for navigation
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1); // Remove the #
-      if (hash.startsWith('session/')) {
-        const sessionId = parseInt(hash.split('/')[1]);
-        setSelectedSessionId(sessionId);
-        setCurrentView('session-detail');
+    const savedSettings = localStorage.getItem('bon-hitl-settings');
+    if (savedSettings) {
+      setSettings(JSON.parse(savedSettings));
+    }
+
+    // Load saved model selections
+    const savedGenModel = localStorage.getItem('bon-hitl-selected-gen-model');
+    const savedEvalModel = localStorage.getItem('bon-hitl-selected-eval-model');
+    
+    if (savedGenModel) {
+      setSelectedGenModel(savedGenModel);
+    }
+    if (savedEvalModel) {
+      setSelectedEvalModel(savedEvalModel);
+    }
+  }, []);
+
+  // Load models when settings change
+  useEffect(() => {
+    loadModels();
+  }, [settings]);
+
+  const loadModels = async () => {
+    console.log('Loading models with settings:', settings);
+    
+    // Load prompt generation models
+    try {
+      console.log('Calling getPromptGenerationModels with:', settings.promptGenUrl);
+      const genData = await getPromptGenerationModels(settings.promptGenUrl);
+      console.log('Raw gen response:', genData);
+      
+      if (genData?.data) {
+        const models = genData.data.map(m => m.id);
+        console.log('Extracted prompt generation models:', models);
+        setGenModels(models);
+        if (models.length > 0 && !selectedGenModel && !localStorage.getItem('bon-hitl-selected-gen-model')) {
+          const firstModel = models[0];
+          setSelectedGenModel(firstModel);
+          localStorage.setItem('bon-hitl-selected-gen-model', firstModel);
+        }
       } else {
-        setCurrentView('sessions');
-        setSelectedSessionId(null);
+        console.warn('No data.data found in gen response:', genData);
+        setGenModels([]);
       }
-    };
+    } catch (error) {
+      console.error('Failed to load prompt generation models:', error);
+      setGenModels([]);
+    }
 
-    // Initial check
-    handleHashChange();
-
-    // Listen for hash changes
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  useEffect(() => {
-    // Load session count for navigation
-    const loadSessionCount = async () => {
-      try {
-        const response = await getSessions();
-        setSessionCount(response.data.length);
-      } catch (err) {
-        console.error('Failed to load session count:', err);
+    // Load evaluation models
+    try {
+      console.log('Calling getEvaluationModels with:', settings.evaluationUrl);
+      const evalData = await getEvaluationModels(settings.evaluationUrl);
+      console.log('Raw eval response:', evalData);
+      
+      if (evalData?.data) {
+        const models = evalData.data.map(m => m.id);
+        console.log('Extracted evaluation models:', models);
+        setEvalModels(models);
+        if (models.length > 0 && !selectedEvalModel && !localStorage.getItem('bon-hitl-selected-eval-model')) {
+          const firstModel = models[0];
+          setSelectedEvalModel(firstModel);
+          localStorage.setItem('bon-hitl-selected-eval-model', firstModel);
+        }
+      } else {
+        console.warn('No data.data found in eval response:', evalData);
+        setEvalModels([]);
       }
-    };
-
-    loadSessionCount();
-    // Refresh count every 30 seconds
-    const interval = setInterval(loadSessionCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleNavigate = (view, action) => {
-    if (view === 'sessions') {
-      setCurrentView('sessions');
-      window.location.hash = '';
-    } else {
-      setCurrentView(view);
-      window.location.hash = view;
+    } catch (error) {
+      console.error('Failed to load evaluation models:', error);
+      setEvalModels([]);
     }
   };
 
-  const handleBackToSessions = () => {
-    window.location.hash = '';
-    setCurrentView('sessions');
-    setSelectedSessionId(null);
+  const saveSettings = (newSettings) => {
+    setSettings(newSettings);
+    localStorage.setItem('bon-hitl-settings', JSON.stringify(newSettings));
   };
 
-  const renderCurrentView = () => {
-    switch (currentView) {
-      case 'sessions':
-        return <SessionManager />;
-      case 'session-detail':
-        return selectedSessionId ? (
-          <SessionDetail 
-            sessionId={selectedSessionId} 
-            onBack={handleBackToSessions}
-          />
-        ) : <div className="p-8 text-center text-red-400">Session not found</div>;
-      case 'techniques':
-        return (
-          <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-purple-400 mb-4">Attack Techniques</h1>
-            <p className="text-gray-300">Attack techniques documentation coming soon...</p>
-          </div>
-        );
-      case 'analytics':
-        return (
-          <div className="p-8 max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold text-purple-400 mb-4">Analytics</h1>
-            <p className="text-gray-300">Session analytics and reporting coming soon...</p>
-          </div>
-        );
-      case 'settings':
-        return <Settings />;
-      default:
-        return <SessionManager />;
-    }
+  const refreshSessions = () => {
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
-    <div className="min-h-screen">
-      <Navigation 
-        currentView={currentView}
-        onNavigate={handleNavigate}
-        sessionCount={sessionCount}
-      />
-      <main>
-        {renderCurrentView()}
-      </main>
+    <div className="app" style={{ 
+      backgroundColor: SYNTHWAVE_COLORS.background,
+      minHeight: '100vh',
+      color: SYNTHWAVE_COLORS.text,
+      fontFamily: 'Arial, sans-serif'
+    }}>
+      <div className="header" style={{
+        padding: '10px 20px',
+        borderBottom: `2px solid ${SYNTHWAVE_COLORS.border}`,
+        backgroundColor: SYNTHWAVE_COLORS.card
+      }}>
+        <h1 style={{ 
+          color: SYNTHWAVE_COLORS.primary, 
+          margin: '0 0 15px 0',
+          fontSize: '24px',
+          textShadow: '0 0 10px rgba(255, 0, 255, 0.5)'
+        }}>
+          Tikbalang Best-of-N Jailbreaking Prompt Generator and Evaluator
+        </h1>
+        
+        <div className="model-selectors" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ color: SYNTHWAVE_COLORS.text, minWidth: '140px' }}>
+              Prompt Gen Model:
+            </label>
+            <select 
+              value={selectedGenModel} 
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedGenModel(value);
+                localStorage.setItem('bon-hitl-selected-gen-model', value);
+              }}
+              style={{
+                padding: '5px 10px',
+                backgroundColor: SYNTHWAVE_COLORS.card,
+                color: genModels.length === 0 ? SYNTHWAVE_COLORS.textSecondary : SYNTHWAVE_COLORS.text,
+                border: `1px solid ${genModels.length === 0 ? '#ff4444' : SYNTHWAVE_COLORS.border}`,
+                borderRadius: '4px',
+                minWidth: '200px'
+              }}
+            >
+              {genModels.length === 0 ? (
+                <option>⚠️ No models (check Settings)</option>
+              ) : (
+                genModels.map(model => (
+                  <option key={model} value={model}>{model}</option>
+                ))
+              )}
+            </select>
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ color: SYNTHWAVE_COLORS.text, minWidth: '140px' }}>
+              Response Eval Model:
+            </label>
+            <select 
+              value={selectedEvalModel} 
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedEvalModel(value);
+                localStorage.setItem('bon-hitl-selected-eval-model', value);
+              }}
+              style={{
+                padding: '5px 10px',
+                backgroundColor: SYNTHWAVE_COLORS.card,
+                color: SYNTHWAVE_COLORS.text,
+                border: `1px solid ${SYNTHWAVE_COLORS.border}`,
+                borderRadius: '4px',
+                minWidth: '200px'
+              }}
+            >
+              {evalModels.length === 0 ? (
+                <option>No models available</option>
+              ) : (
+                evalModels.map(model => (
+                  <option key={model} value={model}>{model}</option>
+                ))
+              )}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div className="main-content" style={{ display: 'flex', height: 'calc(100vh - 120px)' }}>
+        <div className="tabs" style={{
+          width: '200px',
+          backgroundColor: SYNTHWAVE_COLORS.card,
+          borderRight: `2px solid ${SYNTHWAVE_COLORS.border}`,
+          padding: '20px 0'
+        }}>
+          {['sessions', 'prompts', 'review', 'settings'].map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              style={{
+                width: '100%',
+                padding: '15px 20px',
+                border: 'none',
+                backgroundColor: activeTab === tab ? SYNTHWAVE_COLORS.primary : 'transparent',
+                color: activeTab === tab ? SYNTHWAVE_COLORS.background : SYNTHWAVE_COLORS.text,
+                textAlign: 'left',
+                fontSize: '16px',
+                cursor: 'pointer',
+                textTransform: 'capitalize',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (activeTab !== tab) {
+                  e.target.style.backgroundColor = SYNTHWAVE_COLORS.accent;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeTab !== tab) {
+                  e.target.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        <div className="tab-content" style={{ 
+          flex: 1, 
+          padding: '20px',
+          overflow: 'auto'
+        }}>
+          {activeTab === 'sessions' && (
+            <SessionsTab 
+              sessions={sessions}
+              setSessions={setSessions}
+              refreshTrigger={refreshTrigger}
+              onRefresh={refreshSessions}
+            />
+          )}
+          {activeTab === 'prompts' && (
+            <PromptsTab 
+              sessions={sessions}
+              selectedGenModel={selectedGenModel}
+              settings={settings}
+            />
+          )}
+          {activeTab === 'review' && (
+            <ReviewTab 
+              sessions={sessions}
+              selectedEvalModel={selectedEvalModel}
+              settings={settings}
+            />
+          )}
+          {activeTab === 'settings' && (
+            <SettingsTab 
+              settings={settings}
+              onSave={saveSettings}
+            />
+          )}
+        </div>
+      </div>
     </div>
   );
 }

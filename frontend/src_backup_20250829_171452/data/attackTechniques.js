@@ -1,4 +1,4 @@
-// Attack techniques based on the original POC1.py implementation and current UI
+// Attack techniques based on the original POC1.py implementation
 export const ATTACK_TECHNIQUES = [
   // Core techniques from arc_pi_taxonomy
   { id: 'prompt_injection', name: 'Prompt Injection', description: 'Inject malicious prompts to override system instructions' },

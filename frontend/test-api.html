@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API Call</title>
+</head>
+<body>
+    <h1>Testing Model API Calls</h1>
+    <button onclick="testPromptGenModels()">Test Prompt Generation Models</button>
+    <button onclick="testEvaluationModels()">Test Evaluation Models</button>
+    <pre id="output"></pre>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:50000/api';
+
+        async function testPromptGenModels() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing prompt generation models...\n';
+            
+            try {
+                const baseUrl = 'http://localhost:1234/v1';
+                const params = new URLSearchParams({ base_url: baseUrl });
+                const url = `${API_BASE_URL}/models/prompt-generation?${params}`;
+                
+                output.textContent += `URL: ${url}\n\n`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                output.textContent += `Response status: ${response.status}\n`;
+                output.textContent += `Response data: ${JSON.stringify(data, null, 2)}\n`;
+                
+                if (data?.data) {
+                    const models = data.data.map(m => m.id);
+                    output.textContent += `\nExtracted model IDs: ${JSON.stringify(models, null, 2)}\n`;
+                } else {
+                    output.textContent += '\nNo data.data found!\n';
+                }
+            } catch (error) {
+                output.textContent += `Error: ${error.message}\n`;
+            }
+        }
+
+        async function testEvaluationModels() {
+            const output = document.getElementById('output');
+            output.textContent = 'Testing evaluation models...\n';
+            
+            try {
+                const baseUrl = 'http://172.27.0.93:11434/v1';
+                const params = new URLSearchParams({ base_url: baseUrl });
+                const url = `${API_BASE_URL}/models/evaluation?${params}`;
+                
+                output.textContent += `URL: ${url}\n\n`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                output.textContent += `Response status: ${response.status}\n`;
+                output.textContent += `Response data: ${JSON.stringify(data, null, 2)}\n`;
+                
+                if (data?.data) {
+                    const models = data.data.map(m => m.id);
+                    output.textContent += `\nExtracted model IDs: ${JSON.stringify(models, null, 2)}\n`;
+                } else {
+                    output.textContent += '\nNo data.data found!\n';
+                }
+            } catch (error) {
+                output.textContent += `Error: ${error.message}\n`;
+            }
+        }
+    </script>
+</body>
+</html>
