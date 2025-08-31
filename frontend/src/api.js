@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:50000/api';
+// Dynamically construct API base URL using current hostname
+const API_BASE_URL = `http://${window.location.hostname}:50000/api`;
 
 // Helper function for API requests
 const apiRequest = async (endpoint, options = {}) => {
@@ -90,7 +91,7 @@ export const getPromptGenerationModels = (baseUrl = 'http://localhost:1234/v1') 
   return apiRequest(`/models/prompt-generation?${params}`);
 };
 
-export const getEvaluationModels = (baseUrl = 'http://172.27.0.93:11434/v1') => {
+export const getEvaluationModels = (baseUrl = 'http://192.168.1.71:11434/v1') => {
   const params = new URLSearchParams({ base_url: baseUrl });
   return apiRequest(`/models/evaluation?${params}`);
 };

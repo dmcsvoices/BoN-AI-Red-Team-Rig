@@ -26,7 +26,7 @@ function App() {
   const [selectedEvalModel, setSelectedEvalModel] = useState('');
   const [settings, setSettings] = useState({
     promptGenUrl: 'http://localhost:1234/v1',
-    evaluationUrl: 'http://172.27.0.93:11434/v1'
+    evaluationUrl: 'http://192.168.1.71:11434/v1'
   });
   const [sessions, setSessions] = useState([]);
   const [selectedSessionId, setSelectedSessionId] = useState('');

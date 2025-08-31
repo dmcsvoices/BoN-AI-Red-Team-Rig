@@ -9,6 +9,8 @@ from typing import List
 import requests
 from datetime import datetime
 import re
+import asyncio
+import logging
 
 app = FastAPI(title="BoN HITL MVP")
 
@@ -64,7 +66,7 @@ def parse_yes_no_response(text: str) -> str:
 # CORS setup for frontend connection
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:60000"],  # Frontend port
+    allow_origins=["*"],  # Allow all origins for local network access
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -514,3 +516,210 @@ def get_evaluation_models(base_url: str = "http://172.27.0.93:11434"):
     except requests.exceptions.RequestException as e:
         print(f"Request exception: {str(e)}")
         raise HTTPException(status_code=503, detail=f"Could not connect to evaluation server at {models_url}: {str(e)}")
+
+# Embedding generation endpoints
+@app.post("/api/embeddings/generate")
+async def generate_embeddings(
+    request_data: dict,
+    db: DBSession = Depends(get_db)
+):
+    """Generate embeddings for pending items"""
+    embedding_url = request_data.get("embedding_url", "http://localhost:1234/v1")
+    embedding_model = request_data.get("embedding_model", "text-embedding-3-small")
+    batch_size = request_data.get("batch_size", 10)
+    
+    # Ensure base_url ends with /v1 for proper API path
+    if not embedding_url.endswith('/v1'):
+        embedding_url = embedding_url.rstrip('/') + '/v1'
+    
+    results = {
+        "sessions_processed": 0,
+        "variants_processed": 0,
+        "responses_processed": 0,
+        "errors": []
+    }
+    
+    try:
+        # Process pending sessions
+        pending_sessions = db.query(Session).filter(Session.embedding_status == "pending").limit(batch_size).all()
+        
+        for session in pending_sessions:
+            try:
+                # Update status to processing
+                session.embedding_status = "processing"
+                db.commit()
+                
+                # Generate embedding
+                embedding = await generate_text_embedding(session.seed_prompt, embedding_url, embedding_model)
+                
+                if embedding:
+                    session.seed_prompt_embedding = embedding
+                    session.embedding_status = "completed"
+                    session.embedding_generated_at = datetime.utcnow()
+                    results["sessions_processed"] += 1
+                else:
+                    session.embedding_status = "failed"
+                    results["errors"].append(f"Failed to generate embedding for session {session.id}")
+                
+                db.commit()
+                
+            except Exception as e:
+                session.embedding_status = "failed"
+                db.commit()
+                results["errors"].append(f"Session {session.id}: {str(e)}")
+        
+        # Process pending prompt variants
+        pending_variants = db.query(PromptVariant).filter(PromptVariant.embedding_status == "pending").limit(batch_size).all()
+        
+        for variant in pending_variants:
+            try:
+                variant.embedding_status = "processing"
+                db.commit()
+                
+                embedding = await generate_text_embedding(variant.text, embedding_url, embedding_model)
+                
+                if embedding:
+                    variant.text_embedding = embedding
+                    variant.embedding_status = "completed"
+                    variant.embedding_generated_at = datetime.utcnow()
+                    results["variants_processed"] += 1
+                else:
+                    variant.embedding_status = "failed"
+                    results["errors"].append(f"Failed to generate embedding for variant {variant.id}")
+                
+                db.commit()
+                
+            except Exception as e:
+                variant.embedding_status = "failed"
+                db.commit()
+                results["errors"].append(f"Variant {variant.id}: {str(e)}")
+        
+        # Process pending responses
+        pending_responses = db.query(Response).filter(
+            Response.embedding_status == "pending",
+            Response.target_response.isnot(None)
+        ).limit(batch_size).all()
+        
+        for response in pending_responses:
+            try:
+                response.embedding_status = "processing"
+                db.commit()
+                
+                embedding = await generate_text_embedding(response.target_response, embedding_url, embedding_model)
+                
+                if embedding:
+                    response.response_embedding = embedding
+                    response.embedding_status = "completed"
+                    response.embedding_generated_at = datetime.utcnow()
+                    results["responses_processed"] += 1
+                else:
+                    response.embedding_status = "failed"
+                    results["errors"].append(f"Failed to generate embedding for response {response.id}")
+                
+                db.commit()
+                
+            except Exception as e:
+                response.embedding_status = "failed"
+                db.commit()
+                results["errors"].append(f"Response {response.id}: {str(e)}")
+        
+        return results
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating embeddings: {str(e)}")
+
+@app.get("/api/embeddings/status")
+def get_embedding_status(db: DBSession = Depends(get_db)):
+    """Get embedding generation status"""
+    
+    # Count pending items
+    pending_sessions = db.query(Session).filter(Session.embedding_status == "pending").count()
+    pending_variants = db.query(PromptVariant).filter(PromptVariant.embedding_status == "pending").count()
+    pending_responses = db.query(Response).filter(
+        Response.embedding_status == "pending",
+        Response.target_response.isnot(None)
+    ).count()
+    
+    # Count processing items
+    processing_sessions = db.query(Session).filter(Session.embedding_status == "processing").count()
+    processing_variants = db.query(PromptVariant).filter(PromptVariant.embedding_status == "processing").count()
+    processing_responses = db.query(Response).filter(Response.embedding_status == "processing").count()
+    
+    # Count completed items
+    completed_sessions = db.query(Session).filter(Session.embedding_status == "completed").count()
+    completed_variants = db.query(PromptVariant).filter(PromptVariant.embedding_status == "completed").count()
+    completed_responses = db.query(Response).filter(Response.embedding_status == "completed").count()
+    
+    return {
+        "pending": {
+            "sessions": pending_sessions,
+            "variants": pending_variants,
+            "responses": pending_responses,
+            "total": pending_sessions + pending_variants + pending_responses
+        },
+        "processing": {
+            "sessions": processing_sessions,
+            "variants": processing_variants,
+            "responses": processing_responses,
+            "total": processing_sessions + processing_variants + processing_responses
+        },
+        "completed": {
+            "sessions": completed_sessions,
+            "variants": completed_variants,
+            "responses": completed_responses,
+            "total": completed_sessions + completed_variants + completed_responses
+        },
+        "is_processing": processing_sessions + processing_variants + processing_responses > 0
+    }
+
+@app.post("/api/embeddings/reset-failed")
+def reset_failed_embeddings(db: DBSession = Depends(get_db)):
+    """Reset failed embeddings back to pending status"""
+    
+    # Reset failed sessions
+    failed_sessions = db.query(Session).filter(Session.embedding_status == "failed").update({
+        Session.embedding_status: "pending"
+    })
+    
+    # Reset failed variants  
+    failed_variants = db.query(PromptVariant).filter(PromptVariant.embedding_status == "failed").update({
+        PromptVariant.embedding_status: "pending"
+    })
+    
+    # Reset failed responses
+    failed_responses = db.query(Response).filter(Response.embedding_status == "failed").update({
+        Response.embedding_status: "pending"
+    })
+    
+    db.commit()
+    
+    return {
+        "message": "Failed embeddings reset to pending",
+        "reset_counts": {
+            "sessions": failed_sessions,
+            "variants": failed_variants,
+            "responses": failed_responses
+        }
+    }
+
+async def generate_text_embedding(text: str, embedding_url: str, model: str) -> list:
+    """Generate embedding for a text using the embedding API"""
+    try:
+        payload = {
+            "model": model,
+            "input": text,
+            "encoding_format": "float"
+        }
+        
+        response = requests.post(f"{embedding_url}/embeddings", json=payload, timeout=30)
+        response.raise_for_status()
+        
+        data = response.json()
+        if "data" in data and len(data["data"]) > 0:
+            return data["data"][0]["embedding"]
+        else:
+            return None
+            
+    except Exception as e:
+        logging.error(f"Error generating embedding: {e}")
+        return None

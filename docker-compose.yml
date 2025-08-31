@@ -1,0 +1,98 @@
+services:
+  # PostgreSQL Database with pgvector
+  database:
+    image: pgvector/pgvector:pg16
+    container_name: bonhitl-database
+    environment:
+      POSTGRES_DB: bonhitl
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bonhitl"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - promptaudit-network
+
+  # Backend FastAPI Application
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: promptaudit-backend
+    ports:
+      - "50000:50000"
+    volumes:
+      # Mount source code for development (optional)
+      - ./backend:/app
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://postgres:password@database:5432/bonhitl
+    restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - promptaudit-network
+
+  # Frontend React Application
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: promptaudit-frontend
+    ports:
+      - "60000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - promptaudit-network
+
+  # Optional: Add a reverse proxy for production
+  # nginx-proxy:
+  #   image: nginx:alpine
+  #   container_name: promptaudit-proxy
+  #   ports:
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx-proxy.conf:/etc/nginx/conf.d/default.conf
+  #     - ./ssl:/etc/ssl
+  #   depends_on:
+  #     - frontend
+  #   restart: unless-stopped
+  #   networks:
+  #     - promptaudit-network
+
+volumes:
+  # Persistent storage for PostgreSQL database
+  postgres_data:
+    driver: local
+
+networks:
+  promptaudit-network:
+    driver: bridge

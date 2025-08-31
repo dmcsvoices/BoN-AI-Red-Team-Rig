@@ -1,0 +1,40 @@
+# Development overrides for docker-compose
+# This file is automatically loaded by docker-compose and overrides the main config
+# Use this for development-specific settings
+
+services:
+  # Backend development overrides
+  backend:
+    # Use host volume mounts for live code reloading
+    volumes:
+      - ./backend:/app
+      - backend_data:/app/data
+    # Add development environment variables
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - RELOAD=true
+      - LOG_LEVEL=debug
+    # Override command for development
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    
+  # Frontend development overrides  
+  frontend:
+    # For development, you might want to run Vite dev server instead
+    # Uncomment this section and comment out the main frontend service if desired:
+    
+    # build:
+    #   target: development  # You'd need to add a dev stage to frontend Dockerfile
+    # ports:
+    #   - "5173:5173"  # Vite dev server port
+    # volumes:
+    #   - ./frontend:/app
+    #   - /app/node_modules
+    # command: ["npm", "run", "dev", "--", "--host"]
+    
+    # For now, keep production build but with faster rebuilds
+    volumes:
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+
+volumes:
+  backend_data:
