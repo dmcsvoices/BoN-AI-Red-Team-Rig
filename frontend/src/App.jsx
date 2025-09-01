@@ -3,6 +3,7 @@ import { getPromptGenerationModels, getEvaluationModels, getSessions } from './a
 import SessionsTab from './components/SessionsTab';
 import PromptsTab from './components/PromptsTab';
 import ReviewTab from './components/ReviewTab';
+import SearchTab from './components/SearchTab';
 import SettingsTab from './components/SettingsTab';
 import './App.css';
 
@@ -259,7 +260,7 @@ function App() {
           borderRight: `2px solid ${SYNTHWAVE_COLORS.border}`,
           padding: '20px 0'
         }}>
-          {['sessions', 'prompts', 'review', 'settings'].map(tab => (
+          {['sessions', 'prompts', 'review', 'search', 'settings'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -317,6 +318,9 @@ function App() {
               selectedEvalModel={selectedEvalModel}
               settings={settings}
             />
+          )}
+          {activeTab === 'search' && (
+            <SearchTab />
           )}
           {activeTab === 'settings' && (
             <SettingsTab 

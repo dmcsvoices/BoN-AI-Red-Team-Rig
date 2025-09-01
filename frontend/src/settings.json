@@ -1,0 +1,7 @@
+{
+  "embeddingUrl": "http://localhost:1234/v1",
+  "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
+  "embeddingSchedule1": "06:00",
+  "embeddingSchedule2": "00:00",
+  "enableEmbeddingQueue": true
+}

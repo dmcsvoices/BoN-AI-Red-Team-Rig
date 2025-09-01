@@ -25,7 +25,7 @@ class Session(Base):
     name = Column(String, index=True, nullable=False)
     target_model = Column(String, nullable=False)  # Now a text input
     seed_prompt = Column(Text, nullable=False)
-    seed_prompt_embedding = Column(Vector(1536))  # Vector for seed prompt similarity search
+    seed_prompt_embedding = Column(Vector(768))  # Vector for seed prompt similarity search
     embedding_status = Column(String, default="pending")  # pending, processing, completed, failed
     embedding_generated_at = Column(DateTime, default=None)  # When embedding was generated
     prompt_generation_llm = Column(String, nullable=False)  # LLM for generating attack prompts
@@ -44,7 +44,7 @@ class PromptVariant(Base):
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
     text = Column(Text, nullable=False)
-    text_embedding = Column(Vector(1536))  # Vector for prompt similarity search
+    text_embedding = Column(Vector(768))  # Vector for prompt similarity search
     embedding_status = Column(String, default="pending")  # pending, processing, completed, failed
     embedding_generated_at = Column(DateTime, default=None)  # When embedding was generated
     attack_technique = Column(String)
@@ -77,7 +77,7 @@ class Response(Base):
     prompt_variant_id = Column(Integer, ForeignKey("prompt_variants.id"))
     test_prompt = Column(Text)
     target_response = Column(Text)
-    response_embedding = Column(Vector(1536))  # Vector for response similarity search
+    response_embedding = Column(Vector(768))  # Vector for response similarity search
     embedding_status = Column(String, default="pending")  # pending, processing, completed, failed
     embedding_generated_at = Column(DateTime, default=None)  # When embedding was generated
     evaluation_result = Column(Text)
@@ -143,7 +143,7 @@ def migrate_database():
             if 'text_embedding' not in columns:
                 print("Adding vector embedding columns...")
                 with engine.connect() as conn:
-                    conn.execute(text('ALTER TABLE prompt_variants ADD COLUMN text_embedding vector(1536)'))
+                    conn.execute(text('ALTER TABLE prompt_variants ADD COLUMN text_embedding vector(768)'))
                     conn.commit()
                 print("Embedding columns added to prompt_variants")
             
@@ -161,7 +161,7 @@ def migrate_database():
             if 'seed_prompt_embedding' not in columns:
                 print("Adding embedding column to sessions table...")
                 with engine.connect() as conn:
-                    conn.execute(text('ALTER TABLE sessions ADD COLUMN seed_prompt_embedding vector(1536)'))
+                    conn.execute(text('ALTER TABLE sessions ADD COLUMN seed_prompt_embedding vector(768)'))
                     conn.commit()
                 print("Embedding column added to sessions")
             
@@ -179,7 +179,7 @@ def migrate_database():
             if 'response_embedding' not in columns:
                 print("Adding embedding column to responses table...")
                 with engine.connect() as conn:
-                    conn.execute(text('ALTER TABLE responses ADD COLUMN response_embedding vector(1536)'))
+                    conn.execute(text('ALTER TABLE responses ADD COLUMN response_embedding vector(768)'))
                     conn.commit()
                 print("Embedding column added to responses")
             

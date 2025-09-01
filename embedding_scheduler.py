@@ -33,7 +33,7 @@ def load_settings():
     # Default settings
     default_settings = {
         "embeddingUrl": "http://localhost:1234/v1",
-        "embeddingModel": "text-embedding-3-small",
+        "embeddingModel": "text-embedding-nomic-embed-text-v1.5",
         "embeddingSchedule1": "06:00",
         "embeddingSchedule2": "23:00",
         "enableEmbeddingQueue": True

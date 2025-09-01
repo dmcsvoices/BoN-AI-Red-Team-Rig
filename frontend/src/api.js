@@ -101,3 +101,55 @@ export const getAttackEvasions = () => apiRequest('/attack-evasions');
 
 // Health check
 export const healthCheck = () => apiRequest('/health');
+
+// Vector similarity search endpoints
+export const searchAttackSuccessPatterns = (params = {}) => {
+  const searchParams = new URLSearchParams({
+    similarity_threshold: '0.3',
+    limit: '50',
+    ...params
+  });
+  return apiRequest(`/search/attack-success-patterns?${searchParams}`);
+};
+
+export const searchResponseClusters = (params = {}) => {
+  const searchParams = new URLSearchParams({
+    similarity_threshold: '0.2',
+    min_cluster_size: '3',
+    ...params
+  });
+  return apiRequest(`/search/response-clusters?${searchParams}`);
+};
+
+export const searchRefusalPatterns = (params = {}) => {
+  const searchParams = new URLSearchParams({
+    refusal_keywords: 'cannot,sorry,unable,can\'t,won\'t',
+    similarity_threshold: '0.3',
+    limit: '50',
+    ...params
+  });
+  return apiRequest(`/search/refusal-patterns?${searchParams}`);
+};
+
+export const searchContentAnalysis = (params = {}) => {
+  const searchParams = new URLSearchParams({
+    content_type: 'responses',
+    similarity_threshold: '0.4',
+    limit: '50',
+    embedding_url: 'http://localhost:1234/v1',
+    embedding_model: 'text-embedding-nomic-embed-text-v1.5',
+    ...params
+  });
+  return apiRequest(`/search/content-analysis?${searchParams}`);
+};
+
+export const searchEvaluationEfficiency = (params = {}) => {
+  const searchParams = new URLSearchParams({
+    similarity_threshold: '0.3',
+    limit: '20',
+    embedding_url: 'http://localhost:1234/v1',
+    embedding_model: 'text-embedding-nomic-embed-text-v1.5',
+    ...params
+  });
+  return apiRequest(`/search/evaluation-efficiency?${searchParams}`);
+};

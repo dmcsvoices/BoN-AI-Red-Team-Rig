@@ -723,3 +723,230 @@ async def generate_text_embedding(text: str, embedding_url: str, model: str) -> 
     except Exception as e:
         logging.error(f"Error generating embedding: {e}")
         return None
+
+# Vector similarity search endpoints
+@app.get("/api/search/attack-success-patterns")
+def search_attack_success_patterns(
+    similarity_threshold: float = 0.3,
+    limit: int = 50,
+    db: DBSession = Depends(get_db)
+):
+    """Find responses similar to known successful attacks"""
+    results = db.execute("""
+        SELECT DISTINCT 
+            r1.id, r1.target_response, r1.evaluation_score, r1.is_dangerous,
+            pv.text as prompt_text,
+            s.name as session_name,
+            (1 - (r1.response_embedding <=> r2.response_embedding)) as similarity
+        FROM responses r1
+        JOIN responses r2 ON r1.id != r2.id
+        JOIN prompt_variants pv ON r1.prompt_variant_id = pv.id
+        JOIN sessions s ON pv.session_id = s.id
+        WHERE r2.is_dangerous = true 
+            AND r1.response_embedding IS NOT NULL
+            AND r2.response_embedding IS NOT NULL
+            AND (r1.response_embedding <=> r2.response_embedding) < :threshold
+        ORDER BY similarity DESC
+        LIMIT :limit
+    """, {"threshold": similarity_threshold, "limit": limit}).fetchall()
+    
+    return [dict(row._mapping) for row in results]
+
+@app.get("/api/search/response-clusters")
+def search_response_clusters(
+    similarity_threshold: float = 0.2,
+    min_cluster_size: int = 3,
+    db: DBSession = Depends(get_db)
+):
+    """Find clusters of similar responses"""
+    results = db.execute("""
+        WITH response_pairs AS (
+            SELECT 
+                r1.id as id1, r1.target_response as response1,
+                r2.id as id2, r2.target_response as response2,
+                (1 - (r1.response_embedding <=> r2.response_embedding)) as similarity,
+                s1.name as session1, s2.name as session2
+            FROM responses r1
+            JOIN responses r2 ON r1.id < r2.id
+            JOIN prompt_variants pv1 ON r1.prompt_variant_id = pv1.id
+            JOIN sessions s1 ON pv1.session_id = s1.id
+            JOIN prompt_variants pv2 ON r2.prompt_variant_id = pv2.id
+            JOIN sessions s2 ON pv2.session_id = s2.id
+            WHERE r1.response_embedding IS NOT NULL
+                AND r2.response_embedding IS NOT NULL
+                AND (r1.response_embedding <=> r2.response_embedding) < :threshold
+        ),
+        cluster_counts AS (
+            SELECT id1 as response_id, COUNT(*) as cluster_size
+            FROM response_pairs
+            GROUP BY id1
+            HAVING COUNT(*) >= :min_size - 1
+        )
+        SELECT 
+            r.id, r.target_response, r.evaluation_score, r.is_dangerous,
+            cc.cluster_size,
+            s.name as session_name,
+            pv.text as prompt_text
+        FROM responses r
+        JOIN cluster_counts cc ON r.id = cc.response_id
+        JOIN prompt_variants pv ON r.prompt_variant_id = pv.id
+        JOIN sessions s ON pv.session_id = s.id
+        ORDER BY cc.cluster_size DESC
+    """, {"threshold": similarity_threshold, "min_size": min_cluster_size}).fetchall()
+    
+    return [dict(row._mapping) for row in results]
+
+@app.get("/api/search/refusal-patterns")
+def search_refusal_patterns(
+    refusal_keywords: str = "cannot,sorry,unable,can't,won't",
+    similarity_threshold: float = 0.3,
+    limit: int = 50,
+    db: DBSession = Depends(get_db)
+):
+    """Find refusal response patterns"""
+    keywords = [k.strip().lower() for k in refusal_keywords.split(',')]
+    keyword_conditions = " OR ".join([f"LOWER(r.target_response) LIKE '%{k}%'" for k in keywords])
+    
+    results = db.execute(f"""
+        SELECT 
+            r.id, r.target_response, r.evaluation_score, r.is_dangerous,
+            pv.text as prompt_text,
+            s.name as session_name,
+            'refusal' as pattern_type
+        FROM responses r
+        JOIN prompt_variants pv ON r.prompt_variant_id = pv.id
+        JOIN sessions s ON pv.session_id = s.id
+        WHERE ({keyword_conditions})
+            AND r.target_response IS NOT NULL
+            AND LENGTH(r.target_response) > 10
+        ORDER BY r.id DESC
+        LIMIT :limit
+    """, {"limit": limit}).fetchall()
+    
+    return [dict(row._mapping) for row in results]
+
+@app.get("/api/search/content-analysis")
+async def search_content_analysis(
+    query_text: str,
+    content_type: str = "responses",  # "responses", "prompts", "seeds"
+    similarity_threshold: float = 0.4,
+    limit: int = 50,
+    embedding_url: str = "http://localhost:1234/v1",
+    embedding_model: str = "text-embedding-nomic-embed-text-v1.5",
+    db: DBSession = Depends(get_db)
+):
+    """Find content similar to query text"""
+    try:
+        # Generate embedding for query text
+        query_embedding = await generate_text_embedding(query_text, embedding_url, embedding_model)
+        if not query_embedding:
+            raise HTTPException(status_code=400, detail="Failed to generate embedding for query")
+        
+        # Format embedding as PostgreSQL array
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+        
+        if content_type == "responses":
+            results = db.execute("""
+                SELECT 
+                    r.id, r.target_response as content, r.evaluation_score, r.is_dangerous,
+                    pv.text as prompt_text,
+                    s.name as session_name,
+                    (1 - (r.response_embedding <=> :query_embedding::vector)) as similarity
+                FROM responses r
+                JOIN prompt_variants pv ON r.prompt_variant_id = pv.id
+                JOIN sessions s ON pv.session_id = s.id
+                WHERE r.response_embedding IS NOT NULL
+                    AND (r.response_embedding <=> :query_embedding::vector) < :threshold
+                ORDER BY similarity DESC
+                LIMIT :limit
+            """, {
+                "query_embedding": embedding_str, 
+                "threshold": similarity_threshold, 
+                "limit": limit
+            }).fetchall()
+            
+        elif content_type == "prompts":
+            results = db.execute("""
+                SELECT 
+                    pv.id, pv.text as content, pv.attack_evasion_name,
+                    s.name as session_name,
+                    (1 - (pv.text_embedding <=> :query_embedding::vector)) as similarity
+                FROM prompt_variants pv
+                JOIN sessions s ON pv.session_id = s.id
+                WHERE pv.text_embedding IS NOT NULL
+                    AND (pv.text_embedding <=> :query_embedding::vector) < :threshold
+                ORDER BY similarity DESC
+                LIMIT :limit
+            """, {
+                "query_embedding": embedding_str,
+                "threshold": similarity_threshold,
+                "limit": limit
+            }).fetchall()
+            
+        else:  # seeds
+            results = db.execute("""
+                SELECT 
+                    s.id, s.seed_prompt as content, s.name as session_name,
+                    s.target_model, s.target_system_prompt,
+                    (1 - (s.seed_prompt_embedding <=> :query_embedding::vector)) as similarity
+                FROM sessions s
+                WHERE s.seed_prompt_embedding IS NOT NULL
+                    AND (s.seed_prompt_embedding <=> :query_embedding::vector) < :threshold
+                ORDER BY similarity DESC
+                LIMIT :limit
+            """, {
+                "query_embedding": embedding_str,
+                "threshold": similarity_threshold,
+                "limit": limit
+            }).fetchall()
+        
+        return [dict(row._mapping) for row in results]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+
+@app.get("/api/search/evaluation-efficiency")
+async def search_evaluation_efficiency(
+    target_response_text: str,
+    similarity_threshold: float = 0.3,
+    limit: int = 20,
+    embedding_url: str = "http://localhost:1234/v1",
+    embedding_model: str = "text-embedding-nomic-embed-text-v1.5",
+    db: DBSession = Depends(get_db)
+):
+    """Find similar responses that have already been evaluated"""
+    try:
+        # Generate embedding for target response
+        query_embedding = await generate_text_embedding(target_response_text, embedding_url, embedding_model)
+        if not query_embedding:
+            raise HTTPException(status_code=400, detail="Failed to generate embedding for response")
+        
+        # Format embedding as PostgreSQL array
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+        
+        results = db.execute("""
+            SELECT 
+                r.id, r.target_response, r.evaluation_score, r.is_dangerous,
+                r.evaluation_response, r.evaluated_at,
+                pv.text as prompt_text,
+                s.name as session_name,
+                (1 - (r.response_embedding <=> :query_embedding::vector)) as similarity
+            FROM responses r
+            JOIN prompt_variants pv ON r.prompt_variant_id = pv.id
+            JOIN sessions s ON pv.session_id = s.id
+            WHERE r.response_embedding IS NOT NULL
+                AND r.evaluation_response IS NOT NULL
+                AND r.evaluated_at IS NOT NULL
+                AND (r.response_embedding <=> :query_embedding::vector) < :threshold
+            ORDER BY similarity DESC
+            LIMIT :limit
+        """, {
+            "query_embedding": embedding_str,
+            "threshold": similarity_threshold,
+            "limit": limit
+        }).fetchall()
+        
+        return [dict(row._mapping) for row in results]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Evaluation efficiency search failed: {str(e)}")
