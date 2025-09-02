@@ -1,31 +1,51 @@
 #!/bin/bash
 
-# BoN HITL MVP Backend Startup Script
-# This script starts the FastAPI backend server
+# BoN HITL MVP - Native Backend Startup
+# PostgreSQL + FastAPI on port 50000
 
-echo "Starting BoN HITL Backend..."
+echo "🚀 Starting BoN HITL Backend (Native)"
+echo "📍 Port: 50000"
+echo "🗄️ Database: PostgreSQL + pgvector"
+echo ""
 
-# Check if virtual environment exists
+# Check PostgreSQL is running
+if ! pgrep -x "postgres" > /dev/null; then
+    echo "⚠️  PostgreSQL not running, starting..."
+    brew services start postgresql@17
+    sleep 3
+fi
+
+# Verify database exists
+psql postgres -c "SELECT 1 FROM pg_database WHERE datname = 'bonhitl';" | grep -q 1 || {
+    echo "📝 Creating bonhitl database..."
+    psql postgres -c "CREATE DATABASE bonhitl;"
+    psql bonhitl -c "CREATE EXTENSION IF NOT EXISTS vector;"
+}
+
+cd backend
+
+# Setup virtual environment
 if [ ! -d "venv" ]; then
-    echo "Virtual environment not found. Creating one..."
+    echo "📦 Creating virtual environment..."
     python3 -m venv venv
 fi
 
-# Activate virtual environment
-echo "Activating virtual environment..."
+echo "🔧 Activating virtual environment..."
 source venv/bin/activate
 
-# Install dependencies if needed
-if [ ! -f ".deps-installed" ]; then
-    echo "Installing Python dependencies..."
-    pip install -r requirements.txt
-    touch .deps-installed
-fi
+# Install dependencies
+echo "📦 Installing dependencies..."
+pip install -q --upgrade pip
+pip install -q -r requirements.txt
 
-# Set environment variables
-export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+# Set native PostgreSQL connection
+export DATABASE_URL="postgresql://$(whoami)@localhost:5432/bonhitl"
 
-# Start the backend server
-echo "Starting FastAPI server on http://localhost:50000"
-echo "Press Ctrl+C to stop the server"
+echo "✅ Starting FastAPI server..."
+echo "   Backend: http://localhost:50000"
+echo "   API Docs: http://localhost:50000/docs"
+echo ""
+echo "Press Ctrl+C to stop"
+echo ""
+
 uvicorn app.main:app --reload --host 0.0.0.0 --port 50000

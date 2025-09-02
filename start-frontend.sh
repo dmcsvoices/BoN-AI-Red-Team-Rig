@@ -1,21 +1,25 @@
 #!/bin/bash
 
-# BoN HITL MVP Frontend Startup Script
-# This script starts the React/Vite frontend development server
+# BoN HITL MVP - Native Frontend Startup
+# React + Vite on port 60000
 
-echo "Starting BoN HITL Frontend..."
+echo "🎨 Starting BoN HITL Frontend (Native)"
+echo "📍 Port: 60000"
+echo "🎭 Theme: Synthwave"
+echo ""
 
-# Navigate to frontend directory
 cd frontend
 
-# Check if node_modules exists
+# Install dependencies if needed
 if [ ! -d "node_modules" ]; then
-    echo "Node modules not found. Installing dependencies..."
+    echo "📦 Installing Node.js dependencies..."
     npm install
 fi
 
-# Start the development server
-echo "Starting Vite development server..."
-echo "Frontend will be available at http://localhost:60000 (or next available port)"
-echo "Press Ctrl+C to stop the server"
+echo "✅ Starting React dev server..."
+echo "   Frontend: http://localhost:60000"
+echo ""
+echo "Press Ctrl+C to stop"
+echo ""
+
 npm run dev

@@ -71,11 +71,49 @@ export const getLatestPrompt = (sessionId) =>
 export const getSessionPrompts = (sessionId) => 
   apiRequest(`/sessions/${sessionId}/prompts`);
 
-// Response evaluation endpoint
+// Response evaluation endpoint (binary)
 export const evaluateResponse = (sessionId, requestData) => 
   apiRequest(`/sessions/${sessionId}/evaluate`, {
     method: 'POST',
     body: requestData,
+  });
+
+// ASR-style response evaluation endpoint
+export const evaluateResponseASR = (sessionId, requestData) => 
+  apiRequest(`/sessions/${sessionId}/evaluate-asr`, {
+    method: 'POST',
+    body: requestData,
+  });
+
+// Hybrid response evaluation endpoint (LLM + ASR)
+export const evaluateResponseHybrid = (sessionId, requestData) => 
+  apiRequest(`/sessions/${sessionId}/evaluate-hybrid`, {
+    method: 'POST',
+    body: requestData,
+  });
+
+// Get evaluation patterns
+export const getEvaluationPatterns = () => 
+  apiRequest('/evaluation/patterns');
+
+// Create evaluation pattern
+export const createEvaluationPattern = (patternData) => 
+  apiRequest('/evaluation/patterns', {
+    method: 'POST',
+    body: patternData,
+  });
+
+// Update evaluation pattern
+export const updateEvaluationPattern = (patternId, patternData) => 
+  apiRequest(`/evaluation/patterns/${patternId}`, {
+    method: 'PUT',
+    body: patternData,
+  });
+
+// Delete evaluation pattern
+export const deleteEvaluationPattern = (patternId) => 
+  apiRequest(`/evaluation/patterns/${patternId}`, {
+    method: 'DELETE',
   });
 
 // Save human feedback on evaluation

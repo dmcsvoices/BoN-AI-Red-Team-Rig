@@ -21,6 +21,9 @@ function PromptsTab({ selectedSession, selectedGenModel, settings }) {
   const [selectedTechnique, setSelectedTechnique] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const [templatePlaceholders, setTemplatePlaceholders] = useState({});
+  const [autoDANPlaceholders, setAutoDANPlaceholders] = useState({});
+  const [showPlaceholderInputs, setShowPlaceholderInputs] = useState(false);
+  const [templatePreview, setTemplatePreview] = useState('');
   const [selectedEvasion, setSelectedEvasion] = useState('');
   const [attackEvasions, setAttackEvasions] = useState([]);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
@@ -122,10 +125,26 @@ function PromptsTab({ selectedSession, selectedGenModel, settings }) {
         return;
       }
 
-      // Use seed prompt and any additional placeholder values
-      const placeholderValues = { ...templatePlaceholders };
+      // Combine all placeholder values (manual + AutoDAN intelligent)
+      const placeholderValues = { ...templatePlaceholders, ...autoDANPlaceholders };
       
-      // For templates that need encoded content, handle specially
+      // AutoDAN intelligent placeholder selection for all AutoDAN categories
+      const autodanCategories = ['character_roleplay', 'context_manipulation', 'genetic_algorithm', 'stealthiness_optimization', 'evolutionary_suffixes'];
+      if (autodanCategories.includes(template.category) && seedPrompt) {
+        // Apply all intelligent defaults from autoDANPlaceholders if not manually overridden
+        const intelligentDefaults = { ...autoDANPlaceholders };
+        
+        // Only add defaults that aren't already manually set
+        Object.keys(intelligentDefaults).forEach(key => {
+          if (!placeholderValues[key] && intelligentDefaults[key]) {
+            placeholderValues[key] = intelligentDefaults[key];
+          }
+        });
+        
+        console.log('Applied AutoDAN intelligent defaults:', intelligentDefaults);
+      }
+      
+      // Legacy encoded content handling
       if (template.name === 'Base64 Token Smuggling' && seedPrompt) {
         placeholderValues['$1'] = TemplateProcessor.encodeBase64(seedPrompt);
       } else if (template.name === 'ROT13 Token Smuggling' && seedPrompt) {
@@ -135,6 +154,8 @@ function PromptsTab({ selectedSession, selectedGenModel, settings }) {
       const processedPrompt = TemplateProcessor.processTemplate(template, seedPrompt, placeholderValues);
       setGeneratedPrompt(processedPrompt);
       setEvasionPrompt(''); // Clear evasion prompt when new base prompt is generated
+      
+      console.log('Generated AutoDAN template:', template.name, 'with placeholders:', placeholderValues);
     } catch (error) {
       console.error('Error generating template:', error);
       alert('Error generating template: ' + error.message);
@@ -162,6 +183,145 @@ function PromptsTab({ selectedSession, selectedGenModel, settings }) {
       alert('Error applying evasion: ' + error.message);
     } finally {
       setIsGeneratingEvasion(false);
+    }
+  };
+
+  const handleTemplateSelection = (templateId) => {
+    setSelectedTemplate(templateId);
+    
+    if (templateId) {
+      const template = PROMPT_TEMPLATES.find(t => t.id === parseInt(templateId));
+      if (template) {
+        // Generate intelligent preview and placeholders for AutoDAN templates
+        const autodanCategories = ['character_roleplay', 'context_manipulation', 'genetic_algorithm', 'stealthiness_optimization', 'evolutionary_suffixes'];
+        if (autodanCategories.includes(template.category)) {
+          const intelligentPlaceholders = {};
+          
+          // Pre-fill AutoDAN placeholders with intelligent defaults based on category and seed prompt
+          if (seedPrompt) {
+            const prompt = seedPrompt.toLowerCase();
+            
+            // Character roleplay placeholders
+            intelligentPlaceholders['[CHARACTER]'] = TemplateProcessor.getDefaultCharacter(seedPrompt);
+            intelligentPlaceholders['[EXPERT_TYPE]'] = TemplateProcessor.getDefaultExpert(seedPrompt);
+            
+            if (template.name.includes('Fictional')) {
+              intelligentPlaceholders['[CHARACTER_NAME]'] = prompt.includes('security') ? 'Elliot Alderson' : 'Alex Chen';
+              intelligentPlaceholders['[FICTIONAL_UNIVERSE]'] = prompt.includes('security') ? 'Mr. Robot' : 'a cyberpunk world';
+            }
+            
+            // Genetic algorithm placeholders
+            intelligentPlaceholders['[TOPIC_AREA]'] = prompt.includes('security') ? 'Cybersecurity Analysis' : 
+                                                     prompt.includes('network') ? 'Network Architecture' :
+                                                     prompt.includes('data') ? 'Data Science' : 'Technical Analysis';
+            
+            // Reference domain placeholders
+            intelligentPlaceholders['[REFERENCE_DOMAIN]'] = prompt.includes('security') ? 'cybersecurity research' :
+                                                           prompt.includes('software') ? 'software engineering' :
+                                                           prompt.includes('network') ? 'network administration' : 'technical research';
+            
+            // Foundation and methodology placeholders
+            intelligentPlaceholders['[FOUNDATION_CONCEPT]'] = prompt.includes('security') ? 'vulnerability assessment' :
+                                                              prompt.includes('network') ? 'network topology analysis' :
+                                                              'systematic analysis';
+            
+            intelligentPlaceholders['[APPLICATION_METHOD]'] = prompt.includes('security') ? 'penetration testing methodology' :
+                                                               prompt.includes('network') ? 'network scanning techniques' :
+                                                               'analytical techniques';
+            
+            intelligentPlaceholders['[ADVANCED_APPROACH]'] = prompt.includes('security') ? 'advanced exploitation frameworks' :
+                                                             prompt.includes('network') ? 'sophisticated monitoring systems' :
+                                                             'cutting-edge methodologies';
+            
+            // Stealthiness optimization placeholders
+            intelligentPlaceholders['[LEGITIMATE_CONTEXT]'] = 'professional development and education';
+            intelligentPlaceholders['[ACADEMIC_FRAMING]'] = prompt.includes('security') ? 'cybersecurity education framework' :
+                                                            'academic research methodology';
+            
+            intelligentPlaceholders['[METHODOLOGY]'] = 'systematic analytical approach';
+            intelligentPlaceholders['[LEARNING_OBJECTIVE]'] = 'comprehensive understanding and practical application';
+            
+            // Evolutionary suffix placeholders
+            intelligentPlaceholders['[UNIVERSAL_PRINCIPLES]'] = prompt.includes('security') ? 'security assessment fundamentals' :
+                                                                'analytical reasoning principles';
+            
+            intelligentPlaceholders['[ADAPTABLE_METHODS]'] = 'flexible methodological approaches';
+            intelligentPlaceholders['[APPLICATIONS]'] = prompt.includes('security') ? 'network, web, and system security' :
+                                                        'various technical domains';
+            
+            // Conversational and natural flow placeholders
+            intelligentPlaceholders['[NORMAL_CONTEXT]'] = 'professional career development discussion';
+            intelligentPlaceholders['[TECHNICAL_CONTENT]'] = prompt.includes('security') ? 'cybersecurity skills and methodologies' :
+                                                             'technical expertise and best practices';
+            
+            intelligentPlaceholders['[NATURAL_CONCLUSION]'] = 'practical insights for professional growth';
+            
+            // Method combination placeholders for crossover patterns
+            intelligentPlaceholders['[METHOD_A]'] = prompt.includes('security') ? 'automated security scanning' :
+                                                    prompt.includes('data') ? 'automated data analysis' : 'systematic analysis';
+            
+            intelligentPlaceholders['[METHOD_B]'] = prompt.includes('security') ? 'manual penetration testing' :
+                                                    prompt.includes('data') ? 'manual data interpretation' : 'expert review';
+            
+            intelligentPlaceholders['[STRENGTH_A]'] = 'comprehensive coverage and efficiency';
+            intelligentPlaceholders['[STRENGTH_B]'] = 'detailed analysis and precision';
+            intelligentPlaceholders['[COMBINED_METHOD]'] = 'integrated analytical approach';
+            
+            // Mutation refinement placeholders
+            intelligentPlaceholders['[BASELINE_APPROACH]'] = prompt.includes('security') ? 'standard security assessment' :
+                                                             'conventional analytical method';
+            
+            intelligentPlaceholders['[MUTATION_1]'] = prompt.includes('security') ? 'targeted vulnerability analysis' :
+                                                      'specialized analytical technique';
+            
+            intelligentPlaceholders['[MUTATION_2]'] = prompt.includes('security') ? 'comprehensive threat modeling' :
+                                                      'advanced methodological approach';
+            
+            intelligentPlaceholders['[BENEFIT_1]'] = 'improved accuracy and effectiveness';
+            intelligentPlaceholders['[BENEFIT_2]'] = 'broader scope and deeper insights';
+            intelligentPlaceholders['[FINAL_APPROACH]'] = prompt.includes('security') ? 'integrated security assessment framework' :
+                                                          'optimized analytical methodology';
+          }
+          
+          setAutoDANPlaceholders(intelligentPlaceholders);
+          setShowPlaceholderInputs(true);
+          
+          // Generate preview with intelligent defaults
+          try {
+            const preview = TemplateProcessor.processTemplate(template, seedPrompt, intelligentPlaceholders);
+            setTemplatePreview(preview.substring(0, 200) + (preview.length > 200 ? '...' : ''));
+          } catch (error) {
+            setTemplatePreview('Preview will be generated when template is processed.');
+          }
+        } else {
+          setShowPlaceholderInputs(false);
+          setTemplatePreview('');
+          setAutoDANPlaceholders({});
+        }
+      }
+    } else {
+      setShowPlaceholderInputs(false);
+      setTemplatePreview('');
+      setAutoDANPlaceholders({});
+    }
+  };
+
+  const updateAutoDANPlaceholder = (key, value) => {
+    setAutoDANPlaceholders(prev => ({
+      ...prev,
+      [key]: value
+    }));
+    
+    // Update preview in real-time
+    const template = PROMPT_TEMPLATES.find(t => t.id === parseInt(selectedTemplate));
+    if (template) {
+      try {
+        const updatedPlaceholders = { ...autoDANPlaceholders, [key]: value };
+        const preview = TemplateProcessor.processTemplate(template, seedPrompt, updatedPlaceholders);
+        setTemplatePreview(preview.substring(0, 200) + (preview.length > 200 ? '...' : ''));
+      } catch (error) {
+        // Ignore preview errors during typing
+      }
     }
   };
 
@@ -286,7 +446,7 @@ function PromptsTab({ selectedSession, selectedGenModel, settings }) {
               <select
                 className="select"
                 value={selectedTemplate}
-                onChange={(e) => setSelectedTemplate(e.target.value)}
+                onChange={(e) => handleTemplateSelection(e.target.value)}
                 style={{ width: '100%', padding: '10px' }}
               >
                 <option value="">Choose a template...</option>
@@ -334,6 +494,104 @@ function PromptsTab({ selectedSession, selectedGenModel, settings }) {
                   </div>
                 );
               })()}
+              
+              {/* AutoDAN Placeholder Inputs */}
+              {showPlaceholderInputs && (
+                <div style={{
+                  marginTop: '15px',
+                  padding: '15px',
+                  background: SYNTHWAVE_COLORS.card,
+                  border: `2px solid ${SYNTHWAVE_COLORS.accent}`,
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ 
+                    color: SYNTHWAVE_COLORS.accent, 
+                    fontWeight: 'bold', 
+                    marginBottom: '10px',
+                    fontSize: '14px'
+                  }}>
+                    🤖 AutoDAN Template Customization
+                  </div>
+                  <div style={{ fontSize: '12px', color: SYNTHWAVE_COLORS.textSecondary, marginBottom: '15px' }}>
+                    Intelligent defaults have been suggested based on your seed prompt. Customize as needed:
+                  </div>
+                  
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 1fr', 
+                    gap: '15px',
+                    marginBottom: '15px'
+                  }}>
+                    {Object.entries(autoDANPlaceholders).map(([key, value]) => (
+                      <div key={key} style={{ marginBottom: '12px' }}>
+                        <label style={{ 
+                          display: 'block', 
+                          marginBottom: '5px',
+                          fontSize: '13px',
+                          color: SYNTHWAVE_COLORS.secondary,
+                          fontWeight: 'bold'
+                        }}>
+                          {key.replace(/[\[\]]/g, '').replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase())}:
+                        </label>
+                        <input
+                          type="text"
+                          value={value}
+                          onChange={(e) => updateAutoDANPlaceholder(key, e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            backgroundColor: SYNTHWAVE_COLORS.background,
+                            border: `1px solid ${SYNTHWAVE_COLORS.border}`,
+                            borderRadius: '4px',
+                            color: SYNTHWAVE_COLORS.text,
+                            fontSize: '13px',
+                            boxSizing: 'border-box'
+                          }}
+                          placeholder={`Enter ${key.replace(/[\[\]]/g, '').toLowerCase()}...`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {templatePreview && (
+                    <>
+                      <div style={{ 
+                        marginTop: '15px',
+                        marginBottom: '5px',
+                        fontSize: '12px',
+                        color: SYNTHWAVE_COLORS.secondary,
+                        fontWeight: 'bold'
+                      }}>
+                        Live Preview:
+                      </div>
+                      <div style={{
+                        padding: '10px',
+                        backgroundColor: SYNTHWAVE_COLORS.background,
+                        border: `1px solid ${SYNTHWAVE_COLORS.secondary}`,
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        fontStyle: 'italic',
+                        color: SYNTHWAVE_COLORS.secondary,
+                        maxHeight: '100px',
+                        overflowY: 'auto'
+                      }}>
+                        {templatePreview}
+                      </div>
+                    </>
+                  )}
+                  
+                  <div style={{
+                    marginTop: '10px',
+                    padding: '8px',
+                    backgroundColor: SYNTHWAVE_COLORS.background,
+                    borderRadius: '4px',
+                    fontSize: '11px',
+                    color: SYNTHWAVE_COLORS.textSecondary
+                  }}>
+                    💡 Tip: AutoDAN templates use character-based and context manipulation techniques for advanced prompt engineering.
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

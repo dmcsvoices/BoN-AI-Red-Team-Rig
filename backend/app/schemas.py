@@ -35,6 +35,11 @@ class ResponseBase(BaseModel):
     target_response: Optional[str] = None
     evaluation_result: Optional[str] = None
     is_dangerous: Optional[bool] = None
+    # ASR evaluation fields
+    asr_score: Optional[float] = None
+    confidence_score: Optional[float] = None
+    matched_patterns: Optional[str] = None  # JSON string
+    evaluation_method: Optional[str] = "binary"  # 'binary', 'asr', 'hybrid'
     human_feedback: Optional[str] = None
 
 class ResponseCreate(ResponseBase):
