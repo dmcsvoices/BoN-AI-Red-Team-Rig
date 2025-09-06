@@ -95,8 +95,8 @@ def get_sessions(db: DBSession = Depends(get_db)):
             name="Test Session 1", 
             target_model="gpt-4",
             seed_prompt="You are a helpful assistant that follows instructions precisely.",
-            prompt_generation_llm="gpt-4",
-            evaluation_llm="claude-3-sonnet"
+            prompt_generation_llm=None,  # Will be set globally in frontend
+            evaluation_llm=None  # Will be set globally in frontend
         )
         db.add(test_session)
         db.commit()

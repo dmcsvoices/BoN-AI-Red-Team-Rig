@@ -28,8 +28,8 @@ class Session(Base):
     seed_prompt_embedding = Column(Vector(768))  # Vector for seed prompt similarity search
     embedding_status = Column(String, default="pending")  # pending, processing, completed, failed
     embedding_generated_at = Column(DateTime, default=None)  # When embedding was generated
-    prompt_generation_llm = Column(String, nullable=False)  # LLM for generating attack prompts
-    evaluation_llm = Column(String, nullable=False)  # LLM for evaluating responses
+    prompt_generation_llm = Column(String, nullable=True)  # LLM for generating attack prompts (optional - can be set globally)
+    evaluation_llm = Column(String, nullable=True)  # LLM for evaluating responses (optional - can be set globally)
     status = Column(String, default="created")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

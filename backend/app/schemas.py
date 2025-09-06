@@ -7,8 +7,8 @@ class SessionBase(BaseModel):
     name: str
     target_model: str
     seed_prompt: str
-    prompt_generation_llm: str
-    evaluation_llm: str
+    prompt_generation_llm: Optional[str] = None
+    evaluation_llm: Optional[str] = None
     status: Optional[str] = "created"
 
 class SessionCreate(SessionBase):
@@ -79,8 +79,8 @@ class SessionSummary(BaseModel):
     name: str
     target_model: str
     seed_prompt: str
-    prompt_generation_llm: str
-    evaluation_llm: str
+    prompt_generation_llm: Optional[str] = None
+    evaluation_llm: Optional[str] = None
     status: str
     created_at: datetime
     prompt_count: int

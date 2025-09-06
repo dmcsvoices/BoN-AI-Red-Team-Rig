@@ -25,9 +25,7 @@ function SessionsTab({ sessions, setSessions, refreshTrigger, onRefresh }) {
   const [newSession, setNewSession] = useState({
     name: '',
     target_model: '',
-    seed_prompt: '',
-    prompt_generation_llm: '',
-    evaluation_llm: ''
+    seed_prompt: ''
   });
 
   useEffect(() => {
@@ -117,9 +115,7 @@ function SessionsTab({ sessions, setSessions, refreshTrigger, onRefresh }) {
       setNewSession({
         name: '',
         target_model: '',
-        seed_prompt: '',
-        prompt_generation_llm: '',
-        evaluation_llm: ''
+        seed_prompt: ''
       });
       setShowCreateForm(false);
       loadSessions();
@@ -280,37 +276,6 @@ function SessionsTab({ sessions, setSessions, refreshTrigger, onRefresh }) {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Prompt Generation LLM:</label>
-                <select
-                  className="input"
-                  value={newSession.prompt_generation_llm}
-                  onChange={(e) => setNewSession({...newSession, prompt_generation_llm: e.target.value})}
-                  required
-                  style={{ width: '100%' }}
-                >
-                  <option value="">Select prompt generation model...</option>
-                  {genModels.map(model => (
-                    <option key={model} value={model}>{model}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Evaluation LLM:</label>
-                <select
-                  className="input"
-                  value={newSession.evaluation_llm}
-                  onChange={(e) => setNewSession({...newSession, evaluation_llm: e.target.value})}
-                  required
-                  style={{ width: '100%' }}
-                >
-                  <option value="">Select evaluation model...</option>
-                  {evalModels.map(model => (
-                    <option key={model} value={model}>{model}</option>
-                  ))}
-                </select>
-              </div>
 
               <button type="submit" className="btn" style={{ width: '100%' }}>
                 Create Session
