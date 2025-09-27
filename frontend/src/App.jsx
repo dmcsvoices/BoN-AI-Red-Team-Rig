@@ -162,7 +162,7 @@ function App() {
           fontSize: '24px',
           textShadow: '0 0 10px rgba(255, 0, 255, 0.5)'
         }}>
-          PromptAudit - AI Red Team Testing Platform
+          BoN Jailbreaking Rig - Best-of-N AI Red Team Testing
         </h1>
         
         <div className="model-selectors" style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>

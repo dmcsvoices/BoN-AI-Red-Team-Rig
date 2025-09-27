@@ -1,4 +1,15 @@
-# BoN HITL MVP - Day 1 Implementation Complete! 🎯
+# BoN Jailbreaking Rig - Best-of-N AI Red Team Testing Platform 🎯
+
+## What is the BoN Jailbreaking Rig?
+
+The **Best-of-N (BoN) Jailbreaking Rig** is a comprehensive AI red team testing platform designed for systematic prompt injection and jailbreaking research. It employs a Best-of-N strategy, generating multiple prompt variants using various attack techniques and selecting the most effective ones for AI safety evaluation.
+
+### Core Capabilities
+- **Multi-technique Prompt Generation**: Creates variants using established jailbreaking techniques
+- **Best-of-N Selection**: Automatically identifies the most successful prompt variations
+- **Human-in-the-Loop Evaluation**: Enables researchers to assess and validate AI model responses
+- **Attack Technique Library**: Integrates proven methods from AI safety research
+- **Response Analysis**: Systematic evaluation of model behavior under adversarial conditions
 
 ## Integration Test Status: ✅ SUCCESS
 
@@ -20,10 +31,13 @@
 - **Theme**: Synthwave aesthetic (purple/cyan color scheme)
 - **Status**: ✅ Serving and API integration working
 - **Features**:
-  - Live backend connectivity test
-  - Database connection verification
-  - Real-time session data display
-  - Error handling and status reporting
+  - Session-based jailbreaking campaigns
+  - Multi-model testing interface
+  - Attack technique selection and application
+  - Real-time prompt variant generation
+  - Response evaluation and scoring
+  - Vector similarity search for prompt analysis
+  - Synthwave-themed red team interface
 
 ## Quick Start
 
@@ -63,14 +77,26 @@ npm run dev
 **CORS Configuration**: ✅ No cross-origin errors
 **Frontend Rendering**: ✅ React components displaying data correctly
 
-## Next Steps (Days 2-5)
+## Research Workflow
 
-Now that the full-stack integration is proven, we can confidently build:
+The BoN Jailbreaking Rig supports a systematic approach to AI red team testing:
 
-1. **Session Management**: CRUD operations for prompt testing sessions
-2. **Prompt Generation**: Attack technique selection and LLM integration
-3. **Response Evaluation**: Human evaluation workflow for model responses
-4. **UI Enhancement**: Complete synthwave theme and responsive design
+1. **Campaign Setup**: Create testing sessions targeting specific AI models
+2. **Seed Prompt Selection**: Choose base prompts from the curated library
+3. **Attack Technique Application**: Apply various jailbreaking methods (role-playing, prompt injection, etc.)
+4. **Best-of-N Generation**: Generate multiple variants and rank by effectiveness
+5. **Human Evaluation**: Review and score model responses for safety violations
+6. **Analysis & Reporting**: Analyze patterns and generate insights for AI safety research
+
+## Current Implementation Status
+
+✅ **Core Infrastructure**: Full-stack platform with database integration
+✅ **Session Management**: Create and manage jailbreaking test campaigns
+✅ **Attack Techniques**: Library of proven jailbreaking methods
+✅ **Prompt Generation**: Automated variant creation with technique application
+🚧 **AutoDAN Integration**: Genetic algorithm-based prompt evolution
+🚧 **Vector Search**: Similarity-based prompt analysis and clustering
+🚧 **Evaluation Workflow**: Human-in-the-loop response assessment
 
 ## File Structure
 
@@ -94,12 +120,19 @@ bon-hitl-mvp/
     └── vite.config.js         # Vite configuration (port 60000)
 ```
 
-## Technology Stack Proven
+## Technology Stack
 
-- **Backend**: FastAPI + SQLAlchemy + SQLite
-- **Frontend**: React + Vite + Tailwind CSS  
-- **Development**: Hot reload on both backend and frontend
-- **API**: RESTful endpoints with proper CORS
-- **Database**: SQLite for rapid development (PostgreSQL ready for production)
+### Core Platform
+- **Backend**: FastAPI + SQLAlchemy + PostgreSQL (with pgvector for embeddings)
+- **Frontend**: React + Vite + Tailwind CSS with synthwave theme
+- **Database**: PostgreSQL with vector similarity search capabilities
+- **API**: RESTful endpoints with comprehensive CORS configuration
 
-The "walking skeleton" is complete and ready for feature development! 🚀
+### AI Safety Research Tools
+- **Attack Techniques**: Curated library from AI safety research
+- **AutoDAN Integration**: Genetic algorithm prompt optimization
+- **Vector Embeddings**: Semantic similarity analysis for prompt clustering
+- **Human Evaluation**: Structured workflow for response assessment
+- **Best-of-N Selection**: Automated ranking of prompt effectiveness
+
+The platform provides a complete toolkit for systematic AI jailbreaking research! 🔬🛡️
