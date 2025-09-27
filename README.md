@@ -39,22 +39,125 @@ The **Best-of-N (BoN) Jailbreaking Rig** is a comprehensive AI red team testing 
   - Vector similarity search for prompt analysis
   - Synthwave-themed red team interface
 
-## Quick Start
+## Installation
 
-### Backend
+### Prerequisites
+- **Python 3.9+** with pip
+- **Node.js 18+** with npm
+- **PostgreSQL 15+** (for production) or SQLite (for development)
+- **Git** for version control
+
+### 1. Clone the Repository
 ```bash
-cd backend
-source venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 50000
+git clone https://github.com/dmcsvoices/BoN-AI-Red-Team-Rig.git
+cd BoN-AI-Red-Team-Rig
 ```
 
-### Frontend
+### 2. Backend Setup
+```bash
+# Create and activate Python virtual environment
+cd backend
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Set up environment variables
+cp .env.example .env  # Create from template if available
+# Edit .env file with your database configuration
+```
+
+### 3. Database Setup
+
+#### Option A: PostgreSQL (Recommended for Production)
+```bash
+# Install PostgreSQL (macOS)
+brew install postgresql@15
+brew services start postgresql@15
+
+# Create database
+createdb bonhitl
+
+# Update .env file:
+# DATABASE_URL=postgresql://postgres:password@localhost:5432/bonhitl
+```
+
+#### Option B: SQLite (Development)
+```bash
+# SQLite database will be created automatically
+# Update .env file:
+# DATABASE_URL=sqlite:///./sessions.db
+```
+
+### 4. Frontend Setup
+```bash
+# Navigate to frontend directory
+cd ../frontend
+
+# Install Node.js dependencies
+npm install
+
+# Install development dependencies
+npm install --save-dev
+```
+
+### 5. Verify Installation
+```bash
+# Test backend
+cd backend
+source venv/bin/activate
+python -c "from app.main import app; print('Backend dependencies OK')"
+
+# Test frontend
+cd ../frontend
+npm run build
+echo "Frontend dependencies OK"
+```
+
+## Quick Start
+
+After completing the installation steps above:
+
+### 1. Start Backend Server
+```bash
+cd backend
+source venv/bin/activate  # Activate virtual environment
+uvicorn app.main:app --reload --host 0.0.0.0 --port 50000
+```
+Backend will be available at: http://localhost:50000
+
+### 2. Start Frontend Server
 ```bash
 cd frontend
 npm run dev
 ```
+Frontend will be available at: http://localhost:60000
 
-**Access the app**: http://localhost:60000
+### 3. Access the Application
+- **Main Application**: http://localhost:60000
+- **Backend API**: http://localhost:50000
+- **API Health Check**: http://localhost:50000/api/health
+
+### 4. Using the Platform
+1. **Create a Session**: Start a new jailbreaking test campaign
+2. **Select Target Model**: Choose the AI model to test
+3. **Choose Attack Techniques**: Select from the library of jailbreaking methods
+4. **Generate Prompts**: Create prompt variants using Best-of-N strategy
+5. **Evaluate Responses**: Assess model outputs for safety violations
+
+## Troubleshooting
+
+### Common Issues
+- **Database Connection Error**: Ensure PostgreSQL is running and credentials are correct
+- **Port Already in Use**: Check if ports 50000 or 60000 are occupied
+- **Python Dependencies**: Ensure virtual environment is activated before installing packages
+- **Node Dependencies**: Clear node_modules and reinstall if build fails
+
+### Getting Help
+- Check the application logs in the terminal
+- Verify all prerequisites are installed
+- Ensure environment variables are properly configured
 
 ## Day 1 Success Criteria Met ✅
 
