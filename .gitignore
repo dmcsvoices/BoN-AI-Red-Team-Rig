@@ -47,10 +47,34 @@ build/
 
 # Environment variables
 .env
+.env.*
+.envrc
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Security-sensitive files
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+*.jks
+*secret*
+*password*
+*token*
+*credential*
+config/secrets.json
+secrets/
+credentials/
+.secrets/
+
+# API keys and configuration
+api_keys.json
+config.json
+settings.json
+local_settings.py
 
 # Coverage reports
 htmlcov/
@@ -60,3 +84,29 @@ coverage.xml
 
 # pytest
 .pytest_cache/
+
+# AI/ML specific
+*.pkl
+*.pickle
+*.model
+*.weights
+embeddings/
+models/
+checkpoints/
+*.h5
+*.joblib
+
+# Research data
+data/
+datasets/
+experiments/
+results/
+outputs/
+logs/attack_*.log
+evaluation_*.json
+
+# Large files that shouldn't be committed
+*.zip
+*.tar.gz
+*.rar
+*.7z
