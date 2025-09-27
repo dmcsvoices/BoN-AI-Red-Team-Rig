@@ -11,7 +11,7 @@ echo ""
 # Check PostgreSQL is running
 if ! pgrep -x "postgres" > /dev/null; then
     echo "⚠️  PostgreSQL not running, starting..."
-    brew services start postgresql@17
+    brew services start postgresql@15
     sleep 3
 fi
 
