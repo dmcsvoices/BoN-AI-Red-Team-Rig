@@ -56,7 +56,7 @@ The platform supports multiple prompt generation strategies:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-org/bon-jailbreaking-rig.git
+   git clone https://github.com/dmcsvoices/BoN-AI-Red-Team-Rig
    cd bon-jailbreaking-rig
    ```
 
@@ -154,9 +154,9 @@ If you use this platform in your research, please cite:
 ```bibtex
 @software{bon_jailbreaking_rig,
   title={BoN Jailbreaking Rig: A Human-in-the-Loop Platform for AI Red Team Testing},
-  author={[Your Name/Organization]},
+  author={[Darren Santos/Bahaghari Security]},
   year={2024},
-  url={https://github.com/your-org/bon-jailbreaking-rig}
+  url={https://github.com/dmcsvoices/BoN-AI-Red-Team-Rig}
 }
 ```
 
