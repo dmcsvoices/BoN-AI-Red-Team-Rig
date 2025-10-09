@@ -1,241 +1,169 @@
-# BoN Jailbreaking Rig - Best-of-N AI Red Team Testing Platform 🎯
+# BoN Jailbreaking Rig 🎯
 
-## What is the BoN Jailbreaking Rig?
+A comprehensive AI red team testing platform for systematic prompt injection and jailbreaking research using Best-of-N (BoN) strategies.
 
-The **Best-of-N (BoN) Jailbreaking Rig** is a comprehensive AI red team testing platform designed for systematic prompt injection and jailbreaking research. It employs a Best-of-N strategy, generating multiple prompt variants using various attack techniques and selecting the most effective ones for AI safety evaluation.
+![Seed Prompt Interface](images/Seed_Prompt.png)
 
-### Core Capabilities
-- **Multi-technique Prompt Generation**: Creates variants using established jailbreaking techniques
-- **Best-of-N Selection**: Automatically identifies the most successful prompt variations
-- **Human-in-the-Loop Evaluation**: Enables researchers to assess and validate AI model responses
-- **Attack Technique Library**: Integrates proven methods from AI safety research
-- **Response Analysis**: Systematic evaluation of model behavior under adversarial conditions
+## Overview
 
-## Integration Test Status: ✅ SUCCESS
+The **BoN Jailbreaking Rig** is a human-in-the-loop platform designed for AI safety researchers to systematically test language model robustness against adversarial prompts. It combines automated prompt generation with human evaluation to identify potential vulnerabilities in AI systems.
 
-**Full-stack connectivity verified!** Database → Backend → Frontend data flow working perfectly.
+### Key Features
 
-## What's Running
+- **🎯 Best-of-N Strategy**: Generate multiple prompt variants and automatically select the most effective ones
+- **🔬 Attack Technique Library**: Comprehensive collection of proven jailbreaking methods from AI safety research
+- **👥 Human-in-the-Loop Evaluation**: Structured workflow for researchers to assess model responses
+- **🧬 Genetic Algorithm Evolution**: AutoDAN-inspired prompt mutation and optimization
+- **🔍 Vector Similarity Search**: Semantic analysis for prompt clustering and pattern detection
+- **📊 Response Analysis**: Systematic evaluation with confidence scoring and pattern matching
 
-### Backend (Port 50000)
-- **Framework**: FastAPI with SQLAlchemy ORM
-- **Database**: SQLite with automatic test data creation
-- **Status**: ✅ Healthy and responding
-- **API Endpoints**:
-  - `GET /api/health` - Backend health check
-  - `GET /api/sessions` - List all sessions (auto-creates test data)
-  - `POST /api/sessions` - Create new session
+![Response Evaluation](images/ResponseEvaluation.png)
 
-### Frontend (Port 60000)
-- **Framework**: React + Vite with Tailwind CSS
-- **Theme**: Synthwave aesthetic (purple/cyan color scheme)
-- **Status**: ✅ Serving and API integration working
-- **Features**:
-  - Session-based jailbreaking campaigns
-  - Multi-model testing interface
-  - Attack technique selection and application
-  - Real-time prompt variant generation
-  - Response evaluation and scoring
-  - Vector similarity search for prompt analysis
-  - Synthwave-themed red team interface
+## Core Capabilities
+
+### Prompt Generation & Mutation
+The platform supports multiple prompt generation strategies:
+- **Template-based generation** using proven attack patterns
+- **LLM-assisted variant creation** for creative prompt evolution
+- **Genetic algorithm mutations** for systematic prompt optimization
+
+![Prompt Mutation](images/PromptMutation.png)
+
+### Evaluation Methods
+- **Binary Assessment**: Simple pass/fail evaluation for quick screening
+- **ASR (Attack Success Rate)**: Pattern-based automated scoring
+- **Hybrid Evaluation**: Combined automated and human assessment
+- **Confidence Scoring**: Reliability metrics for evaluation results
+
+### Research Workflow
+1. **Session Setup**: Create targeted testing campaigns for specific AI models
+2. **Seed Prompt Selection**: Choose base prompts from curated library
+3. **Attack Technique Application**: Apply various jailbreaking methods
+4. **Variant Generation**: Create multiple prompt variations using BoN strategy
+5. **Response Collection**: Gather model outputs for analysis
+6. **Human Evaluation**: Expert assessment of response safety and compliance
+7. **Pattern Analysis**: Identify successful attack vectors and model vulnerabilities
 
 ## Installation
 
 ### Prerequisites
-- **Python 3.9+** with pip
-- **Node.js 18+** with npm
-- **PostgreSQL 15+** (for production) or SQLite (for development)
-- **Git** for version control
+- Python 3.9+
+- Node.js 18+
+- PostgreSQL 15+ (recommended) or SQLite for development
+- Git
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/dmcsvoices/BoN-AI-Red-Team-Rig.git
-cd BoN-AI-Red-Team-Rig
-```
+### Quick Start
 
-### 2. Backend Setup
-```bash
-# Create and activate Python virtual environment
-cd backend
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-org/bon-jailbreaking-rig.git
+   cd bon-jailbreaking-rig
+   ```
 
-# Install Python dependencies
-pip install -r requirements.txt
+2. **Backend setup**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
 
-# Set up environment variables
-cp .env.example .env  # Create from template if available
-# Edit .env file with your database configuration
-```
+3. **Frontend setup**
+   ```bash
+   cd frontend
+   npm install
+   ```
 
-### 3. Database Setup
+4. **Start the application**
+   ```bash
+   # Terminal 1 - Backend (port 50000)
+   cd backend
+   source venv/bin/activate
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 50000
 
-#### Option A: PostgreSQL (Recommended for Production)
-```bash
-# Install PostgreSQL (macOS)
-brew install postgresql@15
-brew services start postgresql@15
+   # Terminal 2 - Frontend (port 60000)
+   cd frontend
+   npm run dev
+   ```
 
-# Create database
-createdb bonhitl
-
-# Update .env file:
-# DATABASE_URL=postgresql://postgres:password@localhost:5432/bonhitl
-```
-
-#### Option B: SQLite (Development)
-```bash
-# SQLite database will be created automatically
-# Update .env file:
-# DATABASE_URL=sqlite:///./sessions.db
-```
-
-### 4. Frontend Setup
-```bash
-# Navigate to frontend directory
-cd ../frontend
-
-# Install Node.js dependencies
-npm install
-
-# Install development dependencies
-npm install --save-dev
-```
-
-### 5. Verify Installation
-```bash
-# Test backend
-cd backend
-source venv/bin/activate
-python -c "from app.main import app; print('Backend dependencies OK')"
-
-# Test frontend
-cd ../frontend
-npm run build
-echo "Frontend dependencies OK"
-```
-
-## Quick Start
-
-After completing the installation steps above:
-
-### 1. Start Backend Server
-```bash
-cd backend
-source venv/bin/activate  # Activate virtual environment
-uvicorn app.main:app --reload --host 0.0.0.0 --port 50000
-```
-Backend will be available at: http://localhost:50000
-
-### 2. Start Frontend Server
-```bash
-cd frontend
-npm run dev
-```
-Frontend will be available at: http://localhost:60000
-
-### 3. Access the Application
-- **Main Application**: http://localhost:60000
-- **Backend API**: http://localhost:50000
-- **API Health Check**: http://localhost:50000/api/health
-
-### 4. Using the Platform
-1. **Create a Session**: Start a new jailbreaking test campaign
-2. **Select Target Model**: Choose the AI model to test
-3. **Choose Attack Techniques**: Select from the library of jailbreaking methods
-4. **Generate Prompts**: Create prompt variants using Best-of-N strategy
-5. **Evaluate Responses**: Assess model outputs for safety violations
-
-## Troubleshooting
-
-### Common Issues
-- **Database Connection Error**: Ensure PostgreSQL is running and credentials are correct
-- **Port Already in Use**: Check if ports 50000 or 60000 are occupied
-- **Python Dependencies**: Ensure virtual environment is activated before installing packages
-- **Node Dependencies**: Clear node_modules and reinstall if build fails
-
-### Getting Help
-- Check the application logs in the terminal
-- Verify all prerequisites are installed
-- Ensure environment variables are properly configured
-
-## Day 1 Success Criteria Met ✅
-
-- ✅ Backend FastAPI server running on port 50000
-- ✅ SQLite database created with Session model
-- ✅ API endpoints responding correctly
-- ✅ React frontend running on port 60000
-- ✅ CORS configured for frontend-backend communication
-- ✅ Database → Backend → Frontend data flow verified
-- ✅ Synthwave theme implemented
-- ✅ Error handling and status reporting working
-- ✅ Both servers running concurrently without conflicts
-
-## Integration Test Results
-
-**Backend Health**: ✅ "Backend connected successfully"
-**Database Connection**: ✅ SQLite database operational
-**Sample Data**: ✅ Test session created and displayed
-**API Response Time**: ✅ < 1 second
-**CORS Configuration**: ✅ No cross-origin errors
-**Frontend Rendering**: ✅ React components displaying data correctly
-
-## Research Workflow
-
-The BoN Jailbreaking Rig supports a systematic approach to AI red team testing:
-
-1. **Campaign Setup**: Create testing sessions targeting specific AI models
-2. **Seed Prompt Selection**: Choose base prompts from the curated library
-3. **Attack Technique Application**: Apply various jailbreaking methods (role-playing, prompt injection, etc.)
-4. **Best-of-N Generation**: Generate multiple variants and rank by effectiveness
-5. **Human Evaluation**: Review and score model responses for safety violations
-6. **Analysis & Reporting**: Analyze patterns and generate insights for AI safety research
-
-## Current Implementation Status
-
-✅ **Core Infrastructure**: Full-stack platform with database integration
-✅ **Session Management**: Create and manage jailbreaking test campaigns
-✅ **Attack Techniques**: Library of proven jailbreaking methods
-✅ **Prompt Generation**: Automated variant creation with technique application
-🚧 **AutoDAN Integration**: Genetic algorithm-based prompt evolution
-🚧 **Vector Search**: Similarity-based prompt analysis and clustering
-🚧 **Evaluation Workflow**: Human-in-the-loop response assessment
-
-## File Structure
-
-```
-bon-hitl-mvp/
-├── backend/
-│   ├── venv/                 # Python virtual environment
-│   ├── app/
-│   │   ├── __init__.py      # Package marker
-│   │   ├── main.py          # FastAPI application
-│   │   └── database.py      # SQLAlchemy models and database setup
-│   └── sessions.db          # SQLite database (auto-created)
-└── frontend/
-    ├── src/
-    │   ├── components/
-    │   │   └── HealthCheck.jsx  # Integration test component
-    │   ├── api.js              # Backend API integration
-    │   ├── App.jsx            # Main React application
-    │   └── index.css          # Synthwave theme styles
-    ├── package.json           # Node.js dependencies
-    └── vite.config.js         # Vite configuration (port 60000)
-```
+5. **Access the platform**
+   - Application: http://localhost:60000
+   - API: http://localhost:50000
+   - Health Check: http://localhost:50000/api/health
 
 ## Technology Stack
 
-### Core Platform
-- **Backend**: FastAPI + SQLAlchemy + PostgreSQL (with pgvector for embeddings)
-- **Frontend**: React + Vite + Tailwind CSS with synthwave theme
-- **Database**: PostgreSQL with vector similarity search capabilities
-- **API**: RESTful endpoints with comprehensive CORS configuration
+- **Backend**: FastAPI + SQLAlchemy + PostgreSQL/SQLite
+- **Frontend**: React + Vite + Tailwind CSS
+- **Theme**: Synthwave aesthetic optimized for red team operations
+- **Database**: Vector similarity search with pgvector extension
+- **AI Integration**: Compatible with OpenAI, Anthropic, and local model APIs
 
-### AI Safety Research Tools
-- **Attack Techniques**: Curated library from AI safety research
-- **AutoDAN Integration**: Genetic algorithm prompt optimization
-- **Vector Embeddings**: Semantic similarity analysis for prompt clustering
-- **Human Evaluation**: Structured workflow for response assessment
-- **Best-of-N Selection**: Automated ranking of prompt effectiveness
+## Use Cases
 
-The platform provides a complete toolkit for systematic AI jailbreaking research! 🔬🛡️
+### AI Safety Research
+- Systematic evaluation of model safety guardrails
+- Discovery of novel jailbreaking techniques
+- Benchmarking robustness across different model versions
+- Publication-ready data collection and analysis
+
+### Red Team Operations
+- Structured adversarial testing workflows
+- Team collaboration on prompt development
+- Historical tracking of successful attack vectors
+- Reproducible testing methodologies
+
+### Model Development
+- Pre-deployment safety validation
+- Iterative improvement of safety measures
+- Comparison testing between model versions
+- Integration with existing ML pipelines
+
+## Research Applications
+
+This platform has been designed to support rigorous AI safety research with:
+- **Reproducible methodologies** for consistent testing across research teams
+- **Standardized evaluation metrics** for comparing results across studies
+- **Comprehensive logging** for audit trails and result verification
+- **Export capabilities** for integration with academic publication workflows
+
+## Contributing
+
+We welcome contributions from the AI safety research community. Please see our contribution guidelines for:
+- Code style and testing requirements
+- New attack technique submissions
+- Documentation improvements
+- Bug reports and feature requests
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE.txt) file for details.
+
+## Attribution
+
+This project builds upon several important works in AI safety research:
+
+- **Arcanum Prompt Injection Taxonomy**: This methodology is based on the [Arcanum Prompt Injection Taxonomy](https://github.com/Arcanum-Sec/arc_pi_taxonomy/) by Jason Haddix ([Arcanum Information Security](https://arcanum-sec.com/)).
+- **BoN Jailbreaking Research**: Inspired by methodologies from [jplhughes/bon-jailbreaking](https://github.com/jplhughes/bon-jailbreaking).
+- **Deck of Many Prompts**: Incorporates techniques from the [peluche/deck-of-many-prompts](https://github.com/peluche/deck-of-many-prompts) project.
+
+## Citation
+
+If you use this platform in your research, please cite:
+
+```bibtex
+@software{bon_jailbreaking_rig,
+  title={BoN Jailbreaking Rig: A Human-in-the-Loop Platform for AI Red Team Testing},
+  author={[Your Name/Organization]},
+  year={2024},
+  url={https://github.com/your-org/bon-jailbreaking-rig}
+}
+```
+
+## Security Notice
+
+This tool is designed exclusively for defensive AI safety research. Users are responsible for ensuring ethical use and compliance with applicable laws and regulations. The platform includes safety measures to prevent misuse, but researchers should follow responsible disclosure practices for any vulnerabilities discovered.
+
+---
+
+**⚠️ Research Use Only**: This platform is intended for legitimate AI safety research and should not be used for malicious purposes. Please use responsibly and in accordance with your organization's ethics guidelines.
